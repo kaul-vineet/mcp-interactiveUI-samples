@@ -4,26 +4,26 @@ import type { BrandVariants } from '@fluentui/react-components';
 import { ErrorBoundary } from '../shared/ErrorBoundary';
 import { McpBridgeProvider } from '../shared/McpBridge';
 import { FluentWrapper } from '../shared/FluentWrapper';
+import { ToastContainer } from '../shared/Toast';
 import HubSpotApp from './App';
 
-// HubSpot brand: Coral (#FF7A59) palette as BrandVariants
 const hubspotBrand: BrandVariants = {
-  10: '#FFF5F2',
-  20: '#FFE8E0',
-  30: '#FFD4C7',
-  40: '#FFBFAD',
-  50: '#FFA78F',
-  60: '#FF8F73',
-  70: '#FF7A59',
-  80: '#E8563D',
-  90: '#CC4A34',
-  100: '#B03E2C',
-  110: '#943324',
-  120: '#78281C',
-  130: '#5C1E15',
-  140: '#40140E',
-  150: '#240A07',
-  160: '#0D0302',
+  10: '#FFF5F0',
+  20: '#FFE8DB',
+  30: '#FFD4BD',
+  40: '#FFBD9A',
+  50: '#FFA477',
+  60: '#FF8C59',
+  70: '#FF7A45',
+  80: '#FF5C35',
+  90: '#E8492B',
+  100: '#CC3D24',
+  110: '#B3321E',
+  120: '#992818',
+  130: '#801F13',
+  140: '#66170E',
+  150: '#4D100A',
+  160: '#330A06',
 };
 
 createRoot(document.getElementById('root')!).render(
@@ -31,6 +31,7 @@ createRoot(document.getElementById('root')!).render(
     <McpBridgeProvider appName="gtc-hubspot-widget">
       <FluentWrapper brand={hubspotBrand}>
         <HubSpotApp />
+        <ToastContainer />
       </FluentWrapper>
     </McpBridgeProvider>
   </ErrorBoundary>

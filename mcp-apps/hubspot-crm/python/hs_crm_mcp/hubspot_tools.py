@@ -50,6 +50,36 @@ _ENTITY_SCHEMAS: dict[str, dict] = {
             {"name": "description", "label": "Description", "multiline": True},
         ],
     },
+    "Contact": {
+        "columns": [
+            {"apiName": "firstname", "label": "First Name"},
+            {"apiName": "lastname", "label": "Last Name"},
+            {"apiName": "email", "label": "Email"},
+            {"apiName": "phone", "label": "Phone"},
+            {"apiName": "company", "label": "Company"},
+        ],
+        "hiddenColumns": [
+            {"apiName": "lifecyclestage", "label": "Lifecycle Stage"},
+            {"apiName": "jobtitle", "label": "Job Title"},
+            {"apiName": "city", "label": "City"},
+        ],
+        "filterFields": {
+            "email": {"operator": "EQ", "property": "email"},
+            "lifecyclestage": {"operator": "EQ", "property": "lifecyclestage"},
+            "firstname": {"operator": "CONTAINS_TOKEN", "property": "firstname"},
+            "lastname": {"operator": "CONTAINS_TOKEN", "property": "lastname"},
+        },
+        "formFields": [
+            {"name": "firstname", "label": "First Name", "required": True},
+            {"name": "lastname", "label": "Last Name", "required": True},
+            {"name": "email", "label": "Email", "required": True},
+            {"name": "phone", "label": "Phone"},
+            {"name": "jobtitle", "label": "Job Title"},
+            {"name": "lifecyclestage", "label": "Lifecycle Stage", "picklist": ["subscriber", "lead", "marketingqualifiedlead", "salesqualifiedlead", "opportunity", "customer", "evangelist", "other"]},
+            {"name": "city", "label": "City"},
+            {"name": "company_name", "label": "Company (type full name) \ud83d\udd17", "fk": True},
+        ],
+    },
 }
 
 
@@ -114,6 +144,46 @@ def _get_all_props(entity: str) -> list[str]:
     return [c["apiName"] for c in cfg["columns"] + cfg["hiddenColumns"]]
 
 
+# ── FK resolution helpers ─────────────────────────────────────────────────────
+
+async def _resolve_company(client: Any, name: str) -> tuple[str | None, list[str]]:
+    """Find a Company by name. Returns (id, suggestions).
+    - id non-empty on exact match, suggestions = []
+    - id None on miss, suggestions = up to 5 fuzzy candidates
+    """
+    filter_groups = [{"filters": [{"propertyName": "name", "operator": "CONTAINS_TOKEN", "value": name}]}]
+    results = await client.search_objects("companies", ["name"], filter_groups=filter_groups, limit=6)
+    # Check for exact match
+    for r in results:
+        if (r.get("name") or "").lower() == name.lower():
+            return r["id"], []
+    if results:
+        return None, [r.get("name", "") for r in results if r.get("name")][:5]
+    # No fuzzy hits — fall back to most recent
+    recent = await client.search_objects("companies", ["name"], limit=5)
+    return None, [r.get("name", "") for r in recent if r.get("name")]
+
+
+def _company_not_found_alert(name: str, suggestions: list[str]) -> types.CallToolResult:
+    """Return Company-not-found as an ALERT (non-isError) so Copilot's planner
+    doesn't retry the tool call."""
+    msg = f"Company '{name}' not found."
+    if suggestions:
+        msg += f" Did you mean: {', '.join(suggestions)}?"
+    return types.CallToolResult(
+        content=[TextContent(type="text", text=msg)],
+        structuredContent={
+            "type": "alert",
+            "level": "warning",
+            "isError": True,
+            "title": f"Company '{name}' not found",
+            "message": msg,
+            "suggestions": suggestions,
+            "field": "company_name",
+        },
+    )
+
+
 def _build_filter_groups(entity: str, params: dict[str, str]) -> list[dict] | None:
     """Build HubSpot Search API filterGroups from provided params."""
     cfg = _get_schema(entity)
@@ -160,7 +230,30 @@ async def hs__get_companies(
 
     cfg = _get_schema("Company")
 
-    # Branch 1 — id + action="edit"/"change" → prefilled edit form
+    # Branch 1a — action="create" → blank create form (prefill from filters)
+    if action == "create":
+        prefill = {field["name"]: "" for field in cfg["formFields"]}
+        # Allow prefill from query params
+        if name:
+            prefill["name"] = name
+        if type:
+            prefill["type"] = type
+        if lifecyclestage:
+            prefill["lifecyclestage"] = lifecyclestage
+        if city:
+            prefill["city"] = city
+        if country:
+            prefill["country"] = country
+        return types.CallToolResult(
+            content=[TextContent(type="text", text="Opening create form for a new company.")],
+            structuredContent={
+                "type": "form", "entity": "company", "mode": "create",
+                "recordId": "", "prefill": prefill,
+                "_schema": cfg,
+            },
+        )
+
+    # Branch 1b — id + action="edit"/"change" → prefilled edit form
     if company_id and action in ("edit", "change"):
         try:
             client = get_client()
@@ -504,6 +597,301 @@ async def hs__get_company_tickets(
     )
 
 
+# ── Contacts tools ────────────────────────────────────────────────────────────
+
+async def hs__get_contacts(
+    contact_id: str = "",
+    firstname: str = "",
+    lastname: str = "",
+    email: str = "",
+    company_name: str = "",
+    lifecyclestage: str = "",
+    action: str = "",
+    refresh: bool = False,
+) -> types.CallToolResult:
+    """Get contacts. Branches: action=create→form, id+edit→form, id→single, company_name→FK filter, filters→list."""
+    log.info("hs__get_contacts", contact_id=contact_id, action=action,
+             firstname=firstname, lastname=lastname, email=email,
+             company_name=company_name, lifecyclestage=lifecyclestage, refresh=refresh)
+
+    cfg = _get_schema("Contact")
+
+    # Branch 1 — action="create" → blank form
+    if action == "create":
+        prefill = {field["name"]: "" for field in cfg["formFields"]}
+        if firstname:
+            prefill["firstname"] = firstname
+        if lastname:
+            prefill["lastname"] = lastname
+        if email:
+            prefill["email"] = email
+        if company_name:
+            prefill["company_name"] = company_name
+        return types.CallToolResult(
+            content=[TextContent(type="text", text="Opening create form for a new contact.")],
+            structuredContent={
+                "type": "form", "entity": "contact", "mode": "create",
+                "recordId": "", "prefill": prefill,
+                "_schema": cfg,
+            },
+        )
+
+    # Branch 2 — id + action="edit" → prefilled edit form
+    if contact_id and action in ("edit", "change"):
+        try:
+            client = get_client()
+            record = await client.get_object("contacts", contact_id, _get_all_props("Contact"))
+        except HubSpotAuthError as exc:
+            return _error_result(f"HubSpot authentication failed: {exc}")
+        except HubSpotAPIError as exc:
+            return _error_result(f"Contact {contact_id} not found: {exc}")
+        except Exception as exc:
+            return _error_result(f"Error looking up contact: {exc}")
+
+        prefill = {field["name"]: record.get(field["name"], "") or "" for field in cfg["formFields"] if field["name"] != "company_name"}
+        # Resolve primary company name for FK field
+        try:
+            co_ids = await client.get_associated_ids("contacts", contact_id, "companies")
+            if co_ids:
+                cos = await client.batch_read("companies", co_ids[:1], ["name"])
+                prefill["company_name"] = cos[0].get("name", "") if cos else ""
+            else:
+                prefill["company_name"] = ""
+        except Exception:
+            prefill["company_name"] = ""
+
+        return types.CallToolResult(
+            content=[TextContent(type="text", text=f"Opening edit form for contact: {record.get('firstname', '')} {record.get('lastname', '')}.")],
+            structuredContent={
+                "type": "form", "entity": "contact", "mode": "edit",
+                "recordId": record.get("id", contact_id), "prefill": prefill,
+                "_schema": cfg,
+            },
+        )
+
+    # Branch 3 — id alone → single record
+    if contact_id:
+        try:
+            client = get_client()
+            record = await client.get_object("contacts", contact_id, _get_list_props("Contact"))
+        except HubSpotAuthError as exc:
+            return _error_result(f"HubSpot authentication failed: {exc}")
+        except HubSpotAPIError as exc:
+            return _error_result(f"Contact {contact_id} not found: {exc}")
+        except Exception as exc:
+            return _error_result(f"Error fetching contact: {exc}")
+
+        items = [record]
+        return types.CallToolResult(
+            content=[TextContent(type="text", text=_list_summary("contact(s)", items))],
+            structuredContent={
+                "type": "contacts", "total": len(items), "items": items,
+                "_schema": cfg, "_cache": {"hit": False, "cached_at": _now_iso()},
+            },
+        )
+
+    # Branch 4 — FK filter: company_name → search companies → get associated contacts
+    if company_name:
+        try:
+            client = get_client()
+            # Find companies matching name
+            co_filter = [{"filters": [{"propertyName": "name", "operator": "CONTAINS_TOKEN", "value": company_name}]}]
+            companies = await client.search_objects("companies", ["name"], filter_groups=co_filter, limit=5)
+            if not companies:
+                return types.CallToolResult(
+                    content=[TextContent(type="text", text=f"No company found matching '{company_name}'.")],
+                    structuredContent={"type": "contacts", "total": 0, "items": [], "_schema": cfg, "_cache": {"hit": False, "cached_at": _now_iso()}},
+                )
+            # Gather all associated contact IDs
+            all_contact_ids: list[str] = []
+            for co in companies:
+                co_id = co.get("id", "")
+                if co_id:
+                    ids = await client.get_associated_ids("companies", co_id, "contacts")
+                    all_contact_ids.extend(ids)
+            # Deduplicate
+            all_contact_ids = list(dict.fromkeys(all_contact_ids))[:20]
+            if not all_contact_ids:
+                return types.CallToolResult(
+                    content=[TextContent(type="text", text=f"No contacts found for '{company_name}'.")],
+                    structuredContent={"type": "contacts", "total": 0, "items": [], "_schema": cfg, "_cache": {"hit": False, "cached_at": _now_iso()}},
+                )
+            props = _get_list_props("Contact")
+            items = await client.batch_read("contacts", all_contact_ids, props)
+            # Add company name to each contact
+            for item in items:
+                item["company"] = companies[0].get("name", "")
+        except HubSpotAuthError as exc:
+            return _error_result(f"HubSpot authentication failed: {exc}")
+        except HubSpotAPIError as exc:
+            return _error_result(f"Failed to fetch contacts for '{company_name}': {exc}")
+        except Exception as exc:
+            return _error_result(f"Error fetching contacts: {exc}")
+
+        cached_at = _cache_set(f"contacts:company={company_name}", "Contact", items)
+        return types.CallToolResult(
+            content=[TextContent(type="text", text=_list_summary("contact(s)", items))],
+            structuredContent={
+                "type": "contacts", "total": len(items), "items": items,
+                "_schema": cfg, "_cache": {"hit": False, "cached_at": cached_at},
+            },
+        )
+
+    # Branch 5 — property-based filters or bare list
+    filter_params = {
+        "firstname": firstname, "lastname": lastname,
+        "email": email, "lifecyclestage": lifecyclestage,
+    }
+    filter_groups = _build_filter_groups("Contact", filter_params)
+
+    filter_sig = _filter_signature(filter_params)
+    cache_key = f"contacts:{filter_sig}" if filter_sig else "contacts"
+    if not refresh:
+        cached_items, cached_at = _cache_get(cache_key, "Contact")
+        if cached_items is not None:
+            return types.CallToolResult(
+                content=[TextContent(type="text", text=_list_summary("contact(s)", cached_items, cache_hit=True))],
+                structuredContent={
+                    "type": "contacts", "total": len(cached_items), "items": cached_items,
+                    "_schema": cfg, "_cache": {"hit": True, "cached_at": cached_at},
+                },
+            )
+
+    try:
+        client = get_client()
+        props = _get_list_props("Contact")
+        items = await client.search_objects("contacts", props, filter_groups=filter_groups, limit=10)
+    except HubSpotAuthError as exc:
+        return _error_result(f"HubSpot authentication failed: {exc}")
+    except HubSpotAPIError as exc:
+        return _error_result(f"Failed to fetch contacts: {exc}")
+    except Exception as exc:
+        return _error_result(f"Error fetching contacts: {exc}")
+
+    # Resolve company names via associations (best-effort)
+    try:
+        for item in items:
+            co_ids = await client.get_associated_ids("contacts", item["id"], "companies")
+            if co_ids:
+                cos = await client.batch_read("companies", co_ids[:1], ["name"])
+                item["company"] = cos[0].get("name", "") if cos else ""
+            else:
+                item["company"] = ""
+    except Exception:
+        pass  # company resolution is best-effort
+
+    cached_at = _cache_set(cache_key, "Contact", items)
+    return types.CallToolResult(
+        content=[TextContent(type="text", text=_list_summary("contact(s)", items))],
+        structuredContent={
+            "type": "contacts", "total": len(items), "items": items,
+            "_schema": cfg, "_cache": {"hit": False, "cached_at": cached_at},
+        },
+    )
+
+
+async def hs__create_contact(
+    firstname: str,
+    lastname: str,
+    email: str,
+    phone: str = "",
+    jobtitle: str = "",
+    lifecyclestage: str = "",
+    city: str = "",
+    company_name: str = "",
+) -> types.CallToolResult:
+    """Create a new Contact in HubSpot CRM. Optionally associate to a company by name.
+    Returns alert with suggestions if company_name doesn't match."""
+    log.info("hs__create_contact", firstname=firstname, lastname=lastname,
+             email=email, company_name=company_name)
+
+    props: dict[str, Any] = {"firstname": firstname, "lastname": lastname, "email": email}
+    if phone:
+        props["phone"] = phone
+    if jobtitle:
+        props["jobtitle"] = jobtitle
+    if lifecyclestage:
+        props["lifecyclestage"] = lifecyclestage
+    if city:
+        props["city"] = city
+
+    try:
+        client = get_client()
+
+        # Resolve FK BEFORE creating — alert pattern
+        resolved_company_id: str | None = None
+        if company_name:
+            resolved_company_id, suggestions = await _resolve_company(client, company_name)
+            if not resolved_company_id:
+                return _company_not_found_alert(company_name, suggestions)
+
+        new_id = await client.create_object("contacts", props)
+
+        # Associate to resolved company
+        if resolved_company_id:
+            await client.create_association("contacts", new_id, "companies", resolved_company_id)
+    except HubSpotAuthError as exc:
+        return _error_result(f"HubSpot authentication failed: {exc}")
+    except HubSpotAPIError as exc:
+        return _error_result(f"Failed to create contact: {exc}")
+    except Exception as exc:
+        return _error_result(f"Error creating contact: {exc}")
+
+    # Return refreshed contacts list
+    _get_cache("Contact").clear()
+    return await hs__get_contacts(refresh=True)
+
+
+async def hs__update_contact(
+    contact_id: str,
+    firstname: str = "",
+    lastname: str = "",
+    email: str = "",
+    phone: str = "",
+    jobtitle: str = "",
+    lifecyclestage: str = "",
+    city: str = "",
+) -> types.CallToolResult:
+    """Update an existing Contact in HubSpot CRM by its record Id."""
+    log.info("hs__update_contact", contact_id=contact_id, firstname=firstname,
+             lastname=lastname, email=email)
+
+    if not contact_id:
+        return _error_result("contact_id is required.")
+
+    updates: dict[str, Any] = {}
+    if firstname:
+        updates["firstname"] = firstname
+    if lastname:
+        updates["lastname"] = lastname
+    if email:
+        updates["email"] = email
+    if phone:
+        updates["phone"] = phone
+    if jobtitle:
+        updates["jobtitle"] = jobtitle
+    if lifecyclestage:
+        updates["lifecyclestage"] = lifecyclestage
+    if city:
+        updates["city"] = city
+
+    if not updates:
+        return _error_result("No fields to update.")
+
+    try:
+        client = get_client()
+        await client.update_object("contacts", contact_id, updates)
+    except HubSpotAuthError as exc:
+        return _error_result(f"HubSpot authentication failed: {exc}")
+    except HubSpotAPIError as exc:
+        return _error_result(f"Failed to update contact: {exc}")
+    except Exception as exc:
+        return _error_result(f"Error updating contact: {exc}")
+
+    _get_cache("Contact").clear()
+    return await hs__get_contacts(refresh=True)
+
+
 # ── Tool specs (registered by server) ────────────────────────────────────────
 
 TOOL_SPECS: list[dict] = [
@@ -564,6 +952,35 @@ TOOL_SPECS: list[dict] = [
         ),
         "handler": hs__get_company_tickets,
         "_meta": {"ui": {"resourceUri": WIDGET_URI}},
+    },
+    {
+        "name": "hs__get_contacts",
+        "description": (
+            "Get contacts from HubSpot CRM (10 most recent). "
+            "Pass contact_id to view one record; add action='edit' to open the edit form; "
+            "action='create' to open a blank create form. "
+            "Filters: firstname, lastname, email, company_name (FK — searches all associations), "
+            "lifecyclestage (subscriber/lead/marketingqualifiedlead/salesqualifiedlead/"
+            "opportunity/customer/evangelist/other)."
+        ),
+        "handler": hs__get_contacts,
+    },
+    {
+        "name": "hs__create_contact",
+        "description": (
+            "Create a new Contact in HubSpot CRM. Requires: firstname, lastname, email. "
+            "Optional: phone, jobtitle, lifecyclestage, city, company_name (associates to matching company)."
+        ),
+        "handler": hs__create_contact,
+    },
+    {
+        "name": "hs__update_contact",
+        "description": (
+            "Update an existing Contact in HubSpot CRM by its record Id. "
+            "Only fields provided will be updated. "
+            "Fields: firstname, lastname, email, phone, jobtitle, lifecyclestage, city."
+        ),
+        "handler": hs__update_contact,
     },
 ]
 

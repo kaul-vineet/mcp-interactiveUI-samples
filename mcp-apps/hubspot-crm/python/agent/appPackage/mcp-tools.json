@@ -2,7 +2,7 @@
     "tools": [
         {
             "name": "hs__get_companies",
-            "description": "Get companies from HubSpot CRM (10 most recent). Pass company_id to view one record; add action='edit' to open the edit form. Filters: name (text search), domain (text search), type (PROSPECT, PARTNER, RESELLER, VENDOR, OTHER), lifecyclestage (subscriber, lead, marketingqualifiedlead, salesqualifiedlead, opportunity, customer, evangelist, other), city, country.",
+            "description": "Get companies from HubSpot CRM (10 most recent). Pass company_id to view one record; add action='edit' to open the edit form. Filters: name (text search), type (PROSPECT, PARTNER, RESELLER, VENDOR, OTHER), lifecyclestage (subscriber, lead, marketingqualifiedlead, salesqualifiedlead, opportunity, customer, evangelist, other), city, country.",
             "inputSchema": {
                 "properties": {
                     "company_id": {
@@ -10,10 +10,6 @@
                         "type": "string"
                     },
                     "name": {
-                        "default": "",
-                        "type": "string"
-                    },
-                    "domain": {
                         "default": "",
                         "type": "string"
                     },
@@ -148,6 +144,81 @@
                 "type": "object"
             },
             "title": "Update company",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__get_company_contacts",
+            "description": "Get contacts associated with a Company in HubSpot CRM. Required: company_id. Returns first name, last name, email, phone, lifecycle stage.",
+            "inputSchema": {
+                "properties": {
+                    "company_id": {
+                        "type": "string"
+                    },
+                    "refresh": {
+                        "default": false,
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "company_id"
+                ],
+                "type": "object"
+            },
+            "title": "Get company contacts",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__get_company_deals",
+            "description": "Get deals associated with a Company in HubSpot CRM. Required: company_id. Returns deal name, amount, stage, close date, pipeline.",
+            "inputSchema": {
+                "properties": {
+                    "company_id": {
+                        "type": "string"
+                    },
+                    "refresh": {
+                        "default": false,
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "company_id"
+                ],
+                "type": "object"
+            },
+            "title": "Get company deals",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__get_company_tickets",
+            "description": "Get tickets associated with a Company in HubSpot CRM. Required: company_id. Returns subject, status, priority, category.",
+            "inputSchema": {
+                "properties": {
+                    "company_id": {
+                        "type": "string"
+                    },
+                    "refresh": {
+                        "default": false,
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "company_id"
+                ],
+                "type": "object"
+            },
+            "title": "Get company tickets",
             "_meta": {
                 "ui": {
                     "resourceUri": "ui://widget/hubspot.html"

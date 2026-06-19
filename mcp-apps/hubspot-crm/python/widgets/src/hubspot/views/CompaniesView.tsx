@@ -115,13 +115,14 @@ export function CompaniesView({ items: initItems, callTool, toast, theme, cacheI
         onRefresh={isFullscreen ? handleRefresh : undefined}
         refreshing={refreshing}
       />
-      <Table size="small" aria-label="Companies" style={{ borderCollapse: 'collapse' }}>
+      <Table size="small" aria-label="Companies" style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: '100%' }}>
         <TableHeader>
           <TableRow style={{ background: t.headerBg }}>
-            <TableHeaderCell style={{ ...H_CELL, width: 28 }} />
-            {['Name', 'Type', 'City', 'Lifecycle Stage'].map(h => (
-              <TableHeaderCell key={h} style={{ ...H_CELL, color: t.textWeak }}>{h}</TableHeaderCell>
-            ))}
+            <TableHeaderCell style={{ ...H_CELL, width: 32 }} />
+            <TableHeaderCell style={{ ...H_CELL, color: t.textWeak, width: '30%' }}>Name</TableHeaderCell>
+            <TableHeaderCell style={{ ...H_CELL, color: t.textWeak, width: '20%' }}>Type</TableHeaderCell>
+            <TableHeaderCell style={{ ...H_CELL, color: t.textWeak, width: '20%' }}>City</TableHeaderCell>
+            <TableHeaderCell style={{ ...H_CELL, color: t.textWeak, width: '20%' }}>Lifecycle Stage</TableHeaderCell>
             {isFullscreen && <TableHeaderCell style={{ ...H_CELL, width: 80, color: t.textWeak }} />}
           </TableRow>
         </TableHeader>
@@ -135,7 +136,7 @@ export function CompaniesView({ items: initItems, callTool, toast, theme, cacheI
                 style={{ borderBottom: `1px solid ${tokens.colorNeutralStroke2}`, ...(lastSavedId === co.id ? { animation: 'hsRowFlash 2s ease-out' } : {}) }}
                 aria-label={`Company: ${co.name}`}
               >
-                <TableCell style={{ ...D_CELL, width: 28, padding: '6px 8px' }}>
+                <TableCell style={{ ...D_CELL, width: 32, padding: '6px 8px' }}>
                   <Button appearance="subtle" size="small"
                     icon={loadingExpand === co.id ? undefined : expandedId === co.id ? <ChevronDownRegular /> : <ChevronRightRegular />}
                     onClick={() => toggleExpand(co.id)}
@@ -159,21 +160,21 @@ export function CompaniesView({ items: initItems, callTool, toast, theme, cacheI
               {expandedId === co.id && companyDetails[co.id] && (
                 <TableRow>
                   <TableCell colSpan={99} style={{ padding: 0, background: t.expandedBg }}>
-                    <div style={{ padding: '12px 20px 16px', borderTop: `2px solid ${tokens.colorBrandBackground}`, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+                    <div style={{ padding: '12px 20px 16px', borderTop: `2px solid ${tokens.colorBrandBackground}`, display: 'flex', flexDirection: 'column', gap: 16 }}>
                       <div>
                         <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: tokens.colorNeutralForeground3, marginBottom: 6 }}>Contacts</div>
-                        <SubTable headers={['Name', 'Email']}
-                          rows={companyDetails[co.id].contacts.map((ct: any) => [`${ct.firstname || ''} ${ct.lastname || ''}`.trim() || '—', ct.email || '—'])} />
+                        <SubTable headers={['Name', 'Email', 'Phone']}
+                          rows={companyDetails[co.id].contacts.map((ct: any) => [`${ct.firstname || ''} ${ct.lastname || ''}`.trim() || '—', ct.email || '—', ct.phone || '—'])} />
                       </div>
                       <div>
                         <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: tokens.colorNeutralForeground3, marginBottom: 6 }}>Deals</div>
-                        <SubTable headers={['Deal', 'Amount']}
-                          rows={companyDetails[co.id].deals.map((d: any) => [d.dealname || '—', d.amount != null ? '$' + Number(d.amount).toLocaleString() : '—'])} />
+                        <SubTable headers={['Deal', 'Amount', 'Stage', 'Close Date']}
+                          rows={companyDetails[co.id].deals.map((d: any) => [d.dealname || '—', d.amount != null && d.amount !== '' ? '$' + Number(d.amount).toLocaleString() : '—', d.dealstage || '—', d.closedate ? new Date(d.closedate).toLocaleDateString() : '—'])} />
                       </div>
                       <div>
                         <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: tokens.colorNeutralForeground3, marginBottom: 6 }}>Tickets</div>
-                        <SubTable headers={['Subject', 'Status']}
-                          rows={companyDetails[co.id].tickets.map((tk: any) => [tk.subject || '—', tk.status || '—'])} />
+                        <SubTable headers={['Subject', 'Status', 'Priority']}
+                          rows={companyDetails[co.id].tickets.map((tk: any) => [tk.subject || '—', tk.status || '—', tk.priority || '—'])} />
                       </div>
                     </div>
                   </TableCell>

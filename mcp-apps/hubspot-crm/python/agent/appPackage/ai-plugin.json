@@ -8,7 +8,7 @@
     "functions": [
         {
             "name": "hs__get_companies",
-            "description": "Get companies from HubSpot CRM (10 most recent). Pass company_id to view one record; add action='edit' to open the edit form. Filters: name (text search), domain (text search), type (PROSPECT, PARTNER, RESELLER, VENDOR, OTHER), lifecyclestage (subscriber, lead, marketingqualifiedlead, salesqualifiedlead, opportunity, customer, evangelist, other), city, country."
+            "description": "Get companies from HubSpot CRM (10 most recent). Pass company_id to view one record; add action='edit' to open the edit form. Filters: name (text search), type (PROSPECT, PARTNER, RESELLER, VENDOR, OTHER), lifecyclestage (subscriber, lead, marketingqualifiedlead, salesqualifiedlead, opportunity, customer, evangelist, other), city, country."
         },
         {
             "name": "hs__create_company",
@@ -17,6 +17,18 @@
         {
             "name": "hs__update_company",
             "description": "Update an existing Company in HubSpot CRM by its record Id. Only fields provided will be updated. Fields: name, domain, type, lifecyclestage, city, phone, country, description."
+        },
+        {
+            "name": "hs__get_company_contacts",
+            "description": "Get contacts associated with a Company in HubSpot CRM. Required: company_id. Returns first name, last name, email, phone, lifecycle stage."
+        },
+        {
+            "name": "hs__get_company_deals",
+            "description": "Get deals associated with a Company in HubSpot CRM. Required: company_id. Returns deal name, amount, stage, close date, pipeline."
+        },
+        {
+            "name": "hs__get_company_tickets",
+            "description": "Get tickets associated with a Company in HubSpot CRM. Required: company_id. Returns subject, status, priority, category."
         }
     ],
     "runtimes": [
@@ -34,7 +46,10 @@
             "run_for_functions": [
                 "hs__get_companies",
                 "hs__create_company",
-                "hs__update_company"
+                "hs__update_company",
+                "hs__get_company_contacts",
+                "hs__get_company_deals",
+                "hs__get_company_tickets"
             ]
         }
     ]

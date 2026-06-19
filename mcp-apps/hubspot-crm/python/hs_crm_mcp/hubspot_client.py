@@ -183,6 +183,22 @@ class HubSpotClient:
         return [{"id": r["id"], **r.get("properties", {})} for r in results]
 
 
+    async def create_association(
+        self,
+        from_type: str,
+        from_id: str,
+        to_type: str,
+        to_id: str,
+    ) -> None:
+        """Create an association between two records via v4 Associations API."""
+        resp = await self._request(
+            "PUT",
+            f"/crm/v4/objects/{from_type}/{from_id}/associations/{to_type}/{to_id}",
+            json_body=[{"associationCategory": "HUBSPOT_DEFINED", "associationTypeId": 1}],
+        )
+        self._raise_for_error(resp, f"associate {from_type}/{from_id} → {to_type}/{to_id}")
+
+
 # ── Module-level singleton ────────────────────────────────────────────────────
 
 _client: HubSpotClient | None = None

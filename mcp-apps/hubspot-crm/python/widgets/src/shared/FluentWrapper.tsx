@@ -1,17 +1,25 @@
 import React from 'react';
-import { FluentProvider, webLightTheme, webDarkTheme, createLightTheme, createDarkTheme, type BrandVariants, type Theme } from '@fluentui/react-components';
+import {
+  FluentProvider,
+  webLightTheme,
+  webDarkTheme,
+  createLightTheme,
+  createDarkTheme,
+} from '@fluentui/react-components';
+import type { BrandVariants } from '@fluentui/react-components';
 import { useTheme } from './McpBridge';
 
-export function FluentWrapper({ children, brand }: { children: React.ReactNode; brand?: BrandVariants }) {
+interface Props {
+  children: React.ReactNode;
+  brand?: BrandVariants;
+}
+
+export function FluentWrapper({ children, brand }: Props) {
   const theme = useTheme();
-  let lightTheme: Theme = webLightTheme;
-  let darkTheme: Theme = webDarkTheme;
-  if (brand) {
-    lightTheme = createLightTheme(brand);
-    darkTheme = createDarkTheme(brand);
-  }
+  const light = brand ? createLightTheme(brand) : webLightTheme;
+  const dark = brand ? createDarkTheme(brand) : webDarkTheme;
   return (
-    <FluentProvider theme={theme === 'dark' ? darkTheme : lightTheme} style={{ background: 'transparent' }}>
+    <FluentProvider theme={theme === 'dark' ? dark : light} style={{ background: 'transparent' }}>
       {children}
     </FluentProvider>
   );
