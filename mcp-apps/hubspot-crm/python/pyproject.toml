@@ -1,0 +1,26 @@
+[project]
+name = "hs-mcp-copilot"
+version = "0.1.0"
+description = "Ask - HubSpot — MCP server + widget for M365 Copilot"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp==1.26.0",
+    "httpx>=0.27",
+    "python-dotenv>=1.0",
+    "uvicorn>=0.29",
+    "starlette>=0.37",
+    "structlog>=24.1.0",
+    "pydantic-settings>=2.0.0",
+    "tenacity>=8.3.0",
+    "cachetools>=5.3.0",
+]
+
+[project.scripts]
+hs-mcp-copilot = "hs_crm_mcp.hubspot_server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["hs_crm_mcp", "shared_mcp"]

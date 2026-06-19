@@ -1,0 +1,31 @@
+{
+    "$schema": "https://developer.microsoft.com/json-schemas/copilot/declarative-agent/v1.5/schema.json",
+    "version": "v1.5",
+    "name": "Ask - HubSpot${{APP_NAME_SUFFIX}}",
+    "description": "Manage your HubSpot CRM directly from Microsoft 365 Copilot — companies, contacts, deals, and tickets. Interactive widgets with full create/read/update, multi-field filtering, and inline edit forms.",
+    "instructions": "$[file('instruction.txt')]",
+    "conversation_starters": [
+        {
+            "title": "Company overview",
+            "text": "Show me all companies in HubSpot."
+        },
+        {
+            "title": "Create a company",
+            "text": "Create a new company called Contoso with type PROSPECT in Seattle."
+        },
+        {
+            "title": "Filter companies",
+            "text": "Show me companies with lifecycle stage customer."
+        },
+        {
+            "title": "Edit a company",
+            "text": "Edit company Evolt Active — change the city to Mumbai."
+        }
+    ],
+    "actions": [
+        {
+            "id": "action_1",
+            "file": "ai-plugin.json"
+        }
+    ]
+}

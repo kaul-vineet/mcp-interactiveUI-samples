@@ -1,0 +1,41 @@
+{
+    "$schema": "https://aka.ms/json-schemas/copilot-extensions/v2.1/plugin.schema.json",
+    "schema_version": "v2.4",
+    "name_for_human": "Ask - HubSpot",
+    "description_for_human": "Ask - HubSpot${{APP_NAME_SUFFIX}}",
+    "contact_email": "publisher-email@example.com",
+    "namespace": "hs",
+    "functions": [
+        {
+            "name": "hs__get_companies",
+            "description": "Get companies from HubSpot CRM (10 most recent). Pass company_id to view one record; add action='edit' to open the edit form. Filters: name (text search), domain (text search), type (PROSPECT, PARTNER, RESELLER, VENDOR, OTHER), lifecyclestage (subscriber, lead, marketingqualifiedlead, salesqualifiedlead, opportunity, customer, evangelist, other), city, country."
+        },
+        {
+            "name": "hs__create_company",
+            "description": "Create a new Company in HubSpot CRM. Requires: name. Optional: domain, type (PROSPECT/PARTNER/RESELLER/VENDOR/OTHER), lifecyclestage (subscriber/lead/marketingqualifiedlead/salesqualifiedlead/opportunity/customer/evangelist/other), city, phone, country, description."
+        },
+        {
+            "name": "hs__update_company",
+            "description": "Update an existing Company in HubSpot CRM by its record Id. Only fields provided will be updated. Fields: name, domain, type, lifecyclestage, city, phone, country, description."
+        }
+    ],
+    "runtimes": [
+        {
+            "type": "RemoteMCPServer",
+            "spec": {
+                "url": "https://r89f1pd1-8082.inc1.devtunnels.ms/mcp",
+                "mcp_tool_description": {
+                    "file": "mcp-tools.json"
+                }
+            },
+            "auth": {
+                "type": "None"
+            },
+            "run_for_functions": [
+                "hs__get_companies",
+                "hs__create_company",
+                "hs__update_company"
+            ]
+        }
+    ]
+}

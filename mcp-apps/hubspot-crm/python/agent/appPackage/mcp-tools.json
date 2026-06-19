@@ -1,0 +1,158 @@
+{
+    "tools": [
+        {
+            "name": "hs__get_companies",
+            "description": "Get companies from HubSpot CRM (10 most recent). Pass company_id to view one record; add action='edit' to open the edit form. Filters: name (text search), domain (text search), type (PROSPECT, PARTNER, RESELLER, VENDOR, OTHER), lifecyclestage (subscriber, lead, marketingqualifiedlead, salesqualifiedlead, opportunity, customer, evangelist, other), city, country.",
+            "inputSchema": {
+                "properties": {
+                    "company_id": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "domain": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "type": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "lifecyclestage": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "city": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "country": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "action": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "refresh": {
+                        "default": false,
+                        "type": "boolean"
+                    }
+                },
+                "type": "object",
+                "required": []
+            },
+            "title": "Get companies",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__create_company",
+            "description": "Create a new Company in HubSpot CRM. Requires: name. Optional: domain, type (PROSPECT/PARTNER/RESELLER/VENDOR/OTHER), lifecyclestage (subscriber/lead/marketingqualifiedlead/salesqualifiedlead/opportunity/customer/evangelist/other), city, phone, country, description.",
+            "inputSchema": {
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "domain": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "type": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "lifecyclestage": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "city": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "phone": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "country": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "description": {
+                        "default": "",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "name"
+                ],
+                "type": "object"
+            },
+            "title": "Create company",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__update_company",
+            "description": "Update an existing Company in HubSpot CRM by its record Id. Only fields provided will be updated. Fields: name, domain, type, lifecyclestage, city, phone, country, description.",
+            "inputSchema": {
+                "properties": {
+                    "company_id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "domain": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "type": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "lifecyclestage": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "city": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "phone": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "country": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "description": {
+                        "default": "",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "company_id"
+                ],
+                "type": "object"
+            },
+            "title": "Update company",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        }
+    ]
+}
