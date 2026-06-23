@@ -22,18 +22,20 @@ _ENTITY_SCHEMAS: dict[str, dict] = {
     "Company": {
         "columns": [
             {"apiName": "name", "label": "Name"},
+            {"apiName": "domain", "label": "Domain"},
             {"apiName": "type", "label": "Type"},
             {"apiName": "lifecyclestage", "label": "Stage"},
             {"apiName": "city", "label": "City"},
+            {"apiName": "country", "label": "Country"},
         ],
         "hiddenColumns": [
-            {"apiName": "domain", "label": "Domain"},
             {"apiName": "phone", "label": "Phone"},
-            {"apiName": "country", "label": "Country"},
+            {"apiName": "industry", "label": "Industry"},
             {"apiName": "description", "label": "Description"},
         ],
         "filterFields": {
             "name": {"operator": "CONTAINS_TOKEN", "property": "name"},
+            "domain": {"operator": "CONTAINS_TOKEN", "property": "domain"},
             "type": {"operator": "EQ", "property": "type"},
             "lifecyclestage": {"operator": "EQ", "property": "lifecyclestage"},
             "city": {"operator": "CONTAINS_TOKEN", "property": "city"},
@@ -47,6 +49,16 @@ _ENTITY_SCHEMAS: dict[str, dict] = {
             {"name": "city", "label": "City"},
             {"name": "phone", "label": "Phone"},
             {"name": "country", "label": "Country"},
+            {"name": "industry", "label": "Industry", "picklist": [
+                "ACCOUNTING", "AUTOMOTIVE", "BANKING", "BIOTECHNOLOGY", "COMPUTER_SOFTWARE",
+                "CONSTRUCTION", "CONSUMER_GOODS", "EDUCATION_MANAGEMENT", "ENTERTAINMENT",
+                "FINANCIAL_SERVICES", "FOOD_BEVERAGES", "GOVERNMENT_ADMINISTRATION",
+                "HEALTH_WELLNESS_AND_FITNESS", "HOSPITAL_HEALTH_CARE", "HOSPITALITY",
+                "INFORMATION_TECHNOLOGY_AND_SERVICES", "INSURANCE", "INTERNET",
+                "MANAGEMENT_CONSULTING", "MANUFACTURING", "MARKETING_AND_ADVERTISING",
+                "MINING_METALS", "OIL_ENERGY", "PHARMACEUTICALS", "REAL_ESTATE",
+                "RETAIL", "TELECOMMUNICATIONS", "TRANSPORTATION_TRUCKING_RAILROAD", "UTILITIES",
+            ]},
             {"name": "description", "label": "Description", "multiline": True},
         ],
     },
@@ -56,18 +68,19 @@ _ENTITY_SCHEMAS: dict[str, dict] = {
             {"apiName": "lastname", "label": "Last Name"},
             {"apiName": "email", "label": "Email"},
             {"apiName": "phone", "label": "Phone"},
-            {"apiName": "company", "label": "Company"},
-        ],
-        "hiddenColumns": [
-            {"apiName": "lifecyclestage", "label": "Lifecycle Stage"},
             {"apiName": "jobtitle", "label": "Job Title"},
             {"apiName": "city", "label": "City"},
+            {"apiName": "lifecyclestage", "label": "Lifecycle Stage"},
+            {"apiName": "company", "label": "Company"},
         ],
+        "hiddenColumns": [],
         "filterFields": {
             "email": {"operator": "EQ", "property": "email"},
             "lifecyclestage": {"operator": "EQ", "property": "lifecyclestage"},
             "firstname": {"operator": "CONTAINS_TOKEN", "property": "firstname"},
             "lastname": {"operator": "CONTAINS_TOKEN", "property": "lastname"},
+            "jobtitle": {"operator": "CONTAINS_TOKEN", "property": "jobtitle"},
+            "city": {"operator": "CONTAINS_TOKEN", "property": "city"},
         },
         "formFields": [
             {"name": "firstname", "label": "First Name", "required": True},
@@ -77,7 +90,114 @@ _ENTITY_SCHEMAS: dict[str, dict] = {
             {"name": "jobtitle", "label": "Job Title"},
             {"name": "lifecyclestage", "label": "Lifecycle Stage", "picklist": ["subscriber", "lead", "marketingqualifiedlead", "salesqualifiedlead", "opportunity", "customer", "evangelist", "other"]},
             {"name": "city", "label": "City"},
-            {"name": "company_name", "label": "Company (type full name) \ud83d\udd17", "fk": True},
+            {"name": "company_name", "label": "Company (type full name)", "fk": True},
+        ],
+    },
+    "Deal": {
+        "columns": [
+               {"apiName": "dealname", "label": "Deal Name"},
+               {"apiName": "amount", "label": "Amount"},
+               {"apiName": "dealstage", "label": "Stage"},
+               {"apiName": "pipeline", "label": "Pipeline"},
+               {"apiName": "closedate", "label": "Close Date"},
+               {"apiName": "company", "label": "Company"},
+        ],
+        "hiddenColumns": [
+               {"apiName": "dealtype", "label": "Deal Type"},
+               {"apiName": "description", "label": "Description"},
+        ],
+        "filterFields": {
+               "dealname": {"operator": "CONTAINS_TOKEN", "property": "dealname"},
+               "dealstage": {"operator": "EQ", "property": "dealstage"},
+               "pipeline": {"operator": "EQ", "property": "pipeline"},
+               "dealtype": {"operator": "EQ", "property": "dealtype"},
+        },
+        "formFields": [
+               {"name": "dealname", "label": "Deal Name", "required": True},
+               {"name": "amount", "label": "Amount"},
+               {"name": "pipeline", "label": "Pipeline", "required": True, "picklist": ["default"]},
+               {"name": "dealstage", "label": "Stage", "required": True, "picklist": [
+                   "3442945774", "3442945775", "3442945776", "3442945777", "closedwon", "closedlost",
+               ]},
+               {"name": "closedate", "label": "Close Date"},
+               {"name": "dealtype", "label": "Deal Type", "picklist": ["newbusiness", "existingbusiness"]},
+               {"name": "description", "label": "Description", "multiline": True},
+               {"name": "company_name", "label": "Company (type full name)", "fk": True},
+               {"name": "contact_name", "label": "Contact (type full name)", "fk": True},
+        ],
+        "stageLabels": {
+               "3442945774": "Lead Captured",
+               "3442945775": "Qualified",
+               "3442945776": "Proposal Sent",
+               "3442945777": "Negotiation",
+               "closedwon": "Closed Won",
+               "closedlost": "Closed Lost",
+        },
+    },
+    "Product": {
+        "columns": [
+            {"apiName": "name", "label": "Name"},
+            {"apiName": "hs_sku", "label": "SKU"},
+            {"apiName": "price", "label": "Unit Price"},
+            {"apiName": "hs_status", "label": "Status"},
+            {"apiName": "hs_product_type", "label": "Type"},
+            {"apiName": "recurringbillingfrequency", "label": "Billing Freq"},
+        ],
+        "hiddenColumns": [
+            {"apiName": "description", "label": "Description"},
+            {"apiName": "hs_recurring_billing_period", "label": "Term"},
+        ],
+        "filterFields": {
+            "name": {"operator": "CONTAINS_TOKEN", "property": "name"},
+            "hs_product_type": {"operator": "EQ", "property": "hs_product_type"},
+            "hs_status": {"operator": "EQ", "property": "hs_status"},
+        },
+        "formFields": [
+            {"name": "name", "label": "Product Name", "required": True},
+            {"name": "hs_sku", "label": "SKU"},
+            {"name": "price", "label": "Unit Price"},
+            {"name": "hs_status", "label": "Status", "picklist": ["active", "inactive"]},
+            {"name": "hs_product_type", "label": "Product Type", "picklist": ["inventory", "non_inventory", "service"]},
+            {"name": "recurringbillingfrequency", "label": "Billing Frequency", "picklist": [
+                "weekly", "biweekly", "monthly", "quarterly", "per_six_months",
+                "annually", "per_two_years", "per_three_years", "per_four_years", "per_five_years",
+            ]},
+            {"name": "hs_recurring_billing_period", "label": "Term"},
+            {"name": "description", "label": "Description", "multiline": True},
+        ],
+    },
+    "Order": {
+        "columns": [
+               {"apiName": "hs_order_name", "label": "Order Name"},
+               {"apiName": "hs_total_price", "label": "Total"},
+               {"apiName": "hs_currency_code", "label": "Currency"},
+               {"apiName": "hs_fulfillment_status", "label": "Fulfillment"},
+               {"apiName": "hs_payment_status", "label": "Payment"},
+               {"apiName": "hs_closed_date", "label": "Closed Date"},
+               {"apiName": "contact", "label": "Contact"},
+               {"apiName": "company", "label": "Company"},
+               {"apiName": "deal", "label": "Deal"},
+        ],
+        "hiddenColumns": [
+               {"apiName": "hs_source_store", "label": "Source Store"},
+        ],
+        "filterFields": {
+               "hs_order_name": {"operator": "CONTAINS_TOKEN", "property": "hs_order_name"},
+               "hs_fulfillment_status": {"operator": "EQ", "property": "hs_fulfillment_status"},
+               "hs_payment_status": {"operator": "EQ", "property": "hs_payment_status"},
+               "hs_currency_code": {"operator": "EQ", "property": "hs_currency_code"},
+        },
+        "formFields": [
+               {"name": "hs_order_name", "label": "Order Name", "required": True},
+               {"name": "hs_total_price", "label": "Total Price"},
+               {"name": "hs_currency_code", "label": "Currency", "picklist": ["USD", "EUR", "GBP", "CAD", "AUD", "INR"]},
+               {"name": "hs_fulfillment_status", "label": "Fulfillment Status"},
+               {"name": "hs_payment_status", "label": "Payment Status"},
+               {"name": "hs_closed_date", "label": "Closed Date"},
+               {"name": "hs_source_store", "label": "Source Store"},
+               {"name": "company_name", "label": "Company (type full name)", "fk": True},
+               {"name": "contact_name", "label": "Contact (type full name)", "fk": True},
+               {"name": "deal_name", "label": "Deal (type full name)", "fk": True},
         ],
     },
 }
@@ -184,6 +304,74 @@ def _company_not_found_alert(name: str, suggestions: list[str]) -> types.CallToo
     )
 
 
+async def _resolve_contact(client: Any, name: str) -> tuple[str | None, list[str]]:
+    """Find a Contact by name (first+last). Returns (id, suggestions)."""
+    parts = name.strip().split(None, 1)
+    first = parts[0] if parts else name
+    filter_groups = [{"filters": [{"propertyName": "firstname", "operator": "CONTAINS_TOKEN", "value": first}]}]
+    results = await client.search_objects("contacts", ["firstname", "lastname", "email"], filter_groups=filter_groups, limit=6)
+    # Check for exact match on full name
+    for r in results:
+        full = f"{r.get('firstname', '')} {r.get('lastname', '')}".strip()
+        if full.lower() == name.strip().lower():
+            return r["id"], []
+    if results:
+        return None, [f"{r.get('firstname', '')} {r.get('lastname', '')}".strip() for r in results if r.get("firstname")][:5]
+    recent = await client.search_objects("contacts", ["firstname", "lastname"], limit=5)
+    return None, [f"{r.get('firstname', '')} {r.get('lastname', '')}".strip() for r in recent if r.get("firstname")]
+
+
+def _contact_not_found_alert(name: str, suggestions: list[str]) -> types.CallToolResult:
+    """Return Contact-not-found as an ALERT."""
+    msg = f"Contact '{name}' not found."
+    if suggestions:
+        msg += f" Did you mean: {', '.join(suggestions)}?"
+    return types.CallToolResult(
+        content=[TextContent(type="text", text=msg)],
+        structuredContent={
+            "type": "alert",
+            "level": "warning",
+            "isError": True,
+            "title": f"Contact '{name}' not found",
+            "message": msg,
+            "suggestions": suggestions,
+            "field": "contact_name",
+        },
+    )
+
+
+async def _resolve_deal(client: Any, name: str) -> tuple[str | None, list[str]]:
+    """Find a Deal by name. Returns (id, suggestions)."""
+    filter_groups = [{"filters": [{"propertyName": "dealname", "operator": "CONTAINS_TOKEN", "value": name}]}]
+    results = await client.search_objects("deals", ["dealname"], filter_groups=filter_groups, limit=6)
+    for r in results:
+        if (r.get("dealname") or "").lower() == name.lower():
+            return r["id"], []
+    if results:
+        return None, [r.get("dealname", "") for r in results if r.get("dealname")][:5]
+    recent = await client.search_objects("deals", ["dealname"], limit=5)
+    return None, [r.get("dealname", "") for r in recent if r.get("dealname")]
+
+
+def _deal_not_found_alert(name: str, suggestions: list[str]) -> types.CallToolResult:
+    """Return Deal-not-found as an ALERT."""
+    msg = f"Deal '{name}' not found."
+    if suggestions:
+        msg += f" Did you mean: {', '.join(suggestions)}?"
+    return types.CallToolResult(
+        content=[TextContent(type="text", text=msg)],
+        structuredContent={
+            "type": "alert",
+            "level": "warning",
+            "isError": True,
+            "title": f"Deal '{name}' not found",
+            "message": msg,
+            "suggestions": suggestions,
+            "field": "deal_name",
+        },
+    )
+
+
 def _build_filter_groups(entity: str, params: dict[str, str]) -> list[dict] | None:
     """Build HubSpot Search API filterGroups from provided params."""
     cfg = _get_schema(entity)
@@ -216,6 +404,7 @@ def _filter_signature(params: dict[str, str]) -> str:
 async def hs__get_companies(
     company_id: str = "",
     name: str = "",
+    domain: str = "",
     type: str = "",
     lifecyclestage: str = "",
     city: str = "",
@@ -225,7 +414,7 @@ async def hs__get_companies(
 ) -> types.CallToolResult:
     """Get companies. Branches: id+edit→form, id→list-of-one, filters→filtered, bare→top 5."""
     log.info("hs__get_companies", company_id=company_id, action=action,
-             name=name, type=type, lifecyclestage=lifecyclestage,
+             name=name, domain=domain, type=type, lifecyclestage=lifecyclestage,
              city=city, country=country, refresh=refresh)
 
     cfg = _get_schema("Company")
@@ -236,6 +425,8 @@ async def hs__get_companies(
         # Allow prefill from query params
         if name:
             prefill["name"] = name
+        if domain:
+            prefill["domain"] = domain
         if type:
             prefill["type"] = type
         if lifecyclestage:
@@ -298,7 +489,7 @@ async def hs__get_companies(
 
     # Branch 3 — filter-based or bare list
     filter_params = {
-        "name": name, "type": type,
+        "name": name, "domain": domain, "type": type,
         "lifecyclestage": lifecyclestage, "city": city, "country": country,
     }
     filter_groups = _build_filter_groups("Company", filter_params)
@@ -460,137 +651,115 @@ async def hs__update_company(
     )
 
 
-async def hs__get_company_contacts(
-    company_id: str,
-    refresh: bool = False,
-) -> types.CallToolResult:
-    """Get contacts associated to a company via Associations + Batch Read."""
-    log.info("hs__get_company_contacts", company_id=company_id, refresh=refresh)
-    if not company_id:
-        return _error_result("company_id is required.")
+# ── Generic associations tool ─────────────────────────────────────────────────
 
-    try:
-        client = get_client()
-        contact_ids = await client.get_associated_ids("companies", company_id, "contacts")
-        records = await client.batch_read(
-            "contacts",
-            contact_ids,
-            ["firstname", "lastname", "email", "phone", "lifecyclestage"],
-        )
-    except HubSpotAuthError as exc:
-        return _error_result(f"HubSpot authentication failed: {exc}")
-    except HubSpotAPIError as exc:
-        return _error_result(f"Failed to fetch company contacts: {exc}")
-    except Exception as exc:
-        return _error_result(f"Error fetching company contacts: {exc}")
-
-    items = [
-        {
-            "id": record.get("id", ""),
-            "firstname": record.get("firstname", "") or "",
-            "lastname": record.get("lastname", "") or "",
-            "email": record.get("email", "") or "",
-            "phone": record.get("phone", "") or "",
-            "lifecyclestage": record.get("lifecyclestage", "") or "",
-        }
-        for record in records
-    ]
-    return types.CallToolResult(
-        content=[TextContent(type="text", text=f"Showing {len(items)} contact(s).")],
-        structuredContent={
-            "type": "company_contacts",
-            "company_id": company_id,
-            "items": items,
-            "total": len(items),
+_ASSOC_CONFIG: dict[str, dict] = {
+    "contacts": {
+        "props": ["firstname", "lastname", "email", "phone", "lifecyclestage"],
+        "map": lambda r: {
+            "id": r.get("id", ""),
+            "firstname": r.get("firstname", "") or "",
+            "lastname": r.get("lastname", "") or "",
+            "email": r.get("email", "") or "",
+            "phone": r.get("phone", "") or "",
+            "lifecyclestage": r.get("lifecyclestage", "") or "",
         },
-    )
-
-
-async def hs__get_company_deals(
-    company_id: str,
-    refresh: bool = False,
-) -> types.CallToolResult:
-    """Get deals associated to a company via Associations + Batch Read."""
-    log.info("hs__get_company_deals", company_id=company_id, refresh=refresh)
-    if not company_id:
-        return _error_result("company_id is required.")
-
-    try:
-        client = get_client()
-        deal_ids = await client.get_associated_ids("companies", company_id, "deals")
-        records = await client.batch_read(
-            "deals",
-            deal_ids,
-            ["dealname", "amount", "dealstage", "closedate", "pipeline"],
-        )
-    except HubSpotAuthError as exc:
-        return _error_result(f"HubSpot authentication failed: {exc}")
-    except HubSpotAPIError as exc:
-        return _error_result(f"Failed to fetch company deals: {exc}")
-    except Exception as exc:
-        return _error_result(f"Error fetching company deals: {exc}")
-
-    items = [
-        {
-            "id": record.get("id", ""),
-            "dealname": record.get("dealname", "") or "",
-            "amount": record.get("amount", "") or "",
-            "dealstage": record.get("dealstage", "") or "",
-            "closedate": record.get("closedate", "") or "",
-            "pipeline": record.get("pipeline", "") or "",
-        }
-        for record in records
-    ]
-    return types.CallToolResult(
-        content=[TextContent(type="text", text=f"Showing {len(items)} deal(s).")],
-        structuredContent={
-            "type": "company_deals",
-            "company_id": company_id,
-            "items": items,
-            "total": len(items),
+        "label": "contact",
+    },
+    "deals": {
+        "props": ["dealname", "amount", "dealstage", "closedate", "pipeline"],
+        "map": lambda r: {
+            "id": r.get("id", ""),
+            "dealname": r.get("dealname", "") or "",
+            "amount": r.get("amount", "") or "",
+            "dealstage": r.get("dealstage", "") or "",
+            "closedate": r.get("closedate", "") or "",
+            "pipeline": r.get("pipeline", "") or "",
         },
-    )
+        "label": "deal",
+    },
+    "tickets": {
+        "props": ["subject", "hs_pipeline_stage", "hs_ticket_priority", "hs_ticket_category"],
+        "map": lambda r: {
+            "id": r.get("id", ""),
+            "subject": r.get("subject", "") or "",
+            "status": r.get("hs_pipeline_stage", "") or "",
+            "priority": r.get("hs_ticket_priority", "") or "",
+            "category": r.get("hs_ticket_category", "") or "",
+        },
+        "label": "ticket",
+    },
+    "companies": {
+        "props": ["name", "domain", "city", "industry", "lifecyclestage"],
+        "map": lambda r: {
+            "id": r.get("id", ""),
+            "name": r.get("name", "") or "",
+            "domain": r.get("domain", "") or "",
+            "city": r.get("city", "") or "",
+            "industry": r.get("industry", "") or "",
+            "lifecyclestage": r.get("lifecyclestage", "") or "",
+        },
+        "label": "company",
+    },
+    "line_items": {
+        "props": ["name", "quantity", "price", "amount", "hs_sku"],
+        "map": lambda r: {
+            "id": r.get("id", ""),
+            "name": r.get("name", "") or "",
+            "quantity": r.get("quantity", "") or "",
+            "price": r.get("price", "") or "",
+            "amount": r.get("amount", "") or "",
+            "sku": r.get("hs_sku", "") or "",
+        },
+        "label": "line item",
+    },
+}
+
+_VALID_SOURCES = {"companies", "contacts", "deals", "orders"}
+_VALID_TARGETS = {"companies", "contacts", "deals", "tickets", "line_items"}
 
 
-async def hs__get_company_tickets(
-    company_id: str,
+async def hs__get_associations(
+    entity_type: str,
+    entity_id: str,
+    association_type: str,
     refresh: bool = False,
 ) -> types.CallToolResult:
-    """Get tickets associated to a company via Associations + Batch Read."""
-    log.info("hs__get_company_tickets", company_id=company_id, refresh=refresh)
-    if not company_id:
-        return _error_result("company_id is required.")
+    """Get records associated to an entity via HubSpot Associations API.
+
+    entity_type: source object (companies, contacts).
+    entity_id:   HubSpot record id.
+    association_type: target object (contacts, deals, tickets, companies).
+    """
+    log.info("hs__get_associations", entity_type=entity_type, entity_id=entity_id,
+             association_type=association_type, refresh=refresh)
+
+    if not entity_id:
+        return _error_result("entity_id is required.")
+    if entity_type not in _VALID_SOURCES:
+        return _error_result(f"entity_type must be one of {sorted(_VALID_SOURCES)}.")
+    if association_type not in _VALID_TARGETS or association_type == entity_type:
+        return _error_result(f"association_type must be one of {sorted(_VALID_TARGETS - {entity_type})}.")
+
+    cfg = _ASSOC_CONFIG[association_type]
 
     try:
         client = get_client()
-        ticket_ids = await client.get_associated_ids("companies", company_id, "tickets")
-        records = await client.batch_read(
-            "tickets",
-            ticket_ids,
-            ["subject", "hs_pipeline_stage", "hs_ticket_priority", "hs_ticket_category"],
-        )
+        assoc_ids = await client.get_associated_ids(entity_type, entity_id, association_type)
+        records = await client.batch_read(association_type, assoc_ids, cfg["props"])
     except HubSpotAuthError as exc:
         return _error_result(f"HubSpot authentication failed: {exc}")
     except HubSpotAPIError as exc:
-        return _error_result(f"Failed to fetch company tickets: {exc}")
+        return _error_result(f"Failed to fetch {association_type}: {exc}")
     except Exception as exc:
-        return _error_result(f"Error fetching company tickets: {exc}")
+        return _error_result(f"Error fetching {association_type}: {exc}")
 
-    items = [
-        {
-            "id": record.get("id", ""),
-            "subject": record.get("subject", "") or "",
-            "status": record.get("hs_pipeline_stage", "") or "",
-            "priority": record.get("hs_ticket_priority", "") or "",
-            "category": record.get("hs_ticket_category", "") or "",
-        }
-        for record in records
-    ]
+    items = [cfg["map"](r) for r in records]
     return types.CallToolResult(
-        content=[TextContent(type="text", text=f"Showing {len(items)} ticket(s).")],
+        content=[TextContent(type="text", text=f"Showing {len(items)} {cfg['label']}(s).")],
         structuredContent={
-            "type": "company_tickets",
-            "company_id": company_id,
+            "type": f"{entity_type}_{association_type}",
+            "entity_id": entity_id,
             "items": items,
             "total": len(items),
         },
@@ -606,13 +775,16 @@ async def hs__get_contacts(
     email: str = "",
     company_name: str = "",
     lifecyclestage: str = "",
+    jobtitle: str = "",
+    city: str = "",
     action: str = "",
     refresh: bool = False,
 ) -> types.CallToolResult:
     """Get contacts. Branches: action=create→form, id+edit→form, id→single, company_name→FK filter, filters→list."""
     log.info("hs__get_contacts", contact_id=contact_id, action=action,
              firstname=firstname, lastname=lastname, email=email,
-             company_name=company_name, lifecyclestage=lifecyclestage, refresh=refresh)
+             company_name=company_name, lifecyclestage=lifecyclestage,
+             jobtitle=jobtitle, city=city, refresh=refresh)
 
     cfg = _get_schema("Contact")
 
@@ -741,6 +913,7 @@ async def hs__get_contacts(
     filter_params = {
         "firstname": firstname, "lastname": lastname,
         "email": email, "lifecyclestage": lifecyclestage,
+        "jobtitle": jobtitle, "city": city,
     }
     filter_groups = _build_filter_groups("Contact", filter_params)
 
@@ -892,6 +1065,942 @@ async def hs__update_contact(
     return await hs__get_contacts(refresh=True)
 
 
+# ── Deals tools ───────────────────────────────────────────────────────────────
+
+def _deal_stage_label(stage_id: str) -> str:
+    """Convert pipeline stage ID to human-readable label."""
+    labels = _get_schema("Deal").get("stageLabels", {})
+    return labels.get(stage_id, stage_id)
+
+
+async def hs__get_deals(
+    deal_id: str = "",
+    dealname: str = "",
+    dealstage: str = "",
+    pipeline: str = "",
+    dealtype: str = "",
+    company_name: str = "",
+    action: str = "",
+    refresh: bool = False,
+) -> types.CallToolResult:
+    """Get deals from HubSpot CRM."""
+    log.info("hs__get_deals", deal_id=deal_id, action=action, dealname=dealname,
+             dealstage=dealstage, pipeline=pipeline, company_name=company_name, refresh=refresh)
+
+    schema = _get_schema("Deal")
+
+    # ── Branch: blank create form ────────────────────────────────────────────
+    if action == "create":
+        return types.CallToolResult(
+            content=[TextContent(type="text", text="Opening deal create form.")],
+            structuredContent={
+                "type": "form",
+                "entity": "deal",
+                "mode": "create",
+                "_schema": schema,
+            },
+        )
+
+    # ── Branch: single record / edit form ────────────────────────────────────
+    if deal_id:
+        try:
+            client = get_client()
+            record = await client.get_object("deals", deal_id, _get_all_props("Deal"))
+        except HubSpotAuthError as exc:
+            return _error_result(f"HubSpot authentication failed: {exc}")
+        except HubSpotAPIError as exc:
+            return _error_result(f"Failed to fetch deal: {exc}")
+        except Exception as exc:
+            return _error_result(f"Error fetching deal: {exc}")
+
+        if not record:
+            return _error_result(f"Deal {deal_id} not found.")
+
+        # Resolve associated company name
+        try:
+            co_ids = await client.get_associated_ids("deals", deal_id, "companies")
+            if co_ids:
+                cos = await client.batch_read("companies", co_ids[:1], ["name"])
+                record["company"] = cos[0].get("name", "") if cos else ""
+            else:
+                record["company"] = ""
+        except Exception:
+            record["company"] = ""
+
+        # Convert stage ID to label for display
+        record["dealstage_label"] = _deal_stage_label(record.get("dealstage", ""))
+
+        if action == "edit":
+            return types.CallToolResult(
+                content=[TextContent(type="text", text=f"Opening edit form for deal '{record.get('dealname', '')}'.")],
+                structuredContent={
+                    "type": "form",
+                    "entity": "deal",
+                    "mode": "edit",
+                    "recordId": deal_id,
+                    "prefill": record,
+                    "_schema": schema,
+                },
+            )
+
+        return types.CallToolResult(
+            content=[TextContent(type="text", text=f"Deal: {record.get('dealname', '')}.")],
+            structuredContent={
+                "type": "deals",
+                "items": [record],
+                "total": 1,
+                "_schema": schema,
+            },
+        )
+
+    # ── Branch: FK filter by company_name ────────────────────────────────────
+    if company_name:
+        try:
+            client = get_client()
+            co_id, suggestions = await _resolve_company(client, company_name)
+            if not co_id:
+                return _company_not_found_alert(company_name, suggestions)
+            deal_ids = await client.get_associated_ids("companies", co_id, "deals")
+            if not deal_ids:
+                return types.CallToolResult(
+                    content=[TextContent(type="text", text=f"No deals found for company '{company_name}'.")],
+                    structuredContent={"type": "deals", "items": [], "total": 0, "_schema": schema},
+                )
+            props = _get_list_props("Deal")
+            items = await client.batch_read("deals", deal_ids, [p for p in props if p != "company"])
+            # Attach company name and stage labels
+            for item in items:
+                item["company"] = company_name
+                item["dealstage_label"] = _deal_stage_label(item.get("dealstage", ""))
+        except HubSpotAuthError as exc:
+            return _error_result(f"HubSpot authentication failed: {exc}")
+        except Exception as exc:
+            return _error_result(f"Error fetching deals by company: {exc}")
+
+        cached_at = _cache_set(f"deals_co_{company_name}", "Deal", items)
+        return types.CallToolResult(
+            content=[TextContent(type="text", text=f"Showing {len(items)} deal(s) for '{company_name}'.")],
+            structuredContent={
+                "type": "deals",
+                "items": items,
+                "total": len(items),
+                "_schema": schema,
+                "_cache": {"hit": False, "cached_at": cached_at},
+            },
+        )
+
+    # ── Branch: list / filter ────────────────────────────────────────────────
+    filter_params = {k: v for k, v in {"dealname": dealname, "dealstage": dealstage, "pipeline": pipeline, "dealtype": dealtype}.items() if v}
+    filter_sig = _filter_signature(filter_params)
+    cache_key = f"deals_{filter_sig}" if filter_sig else "deals_all"
+
+    if not refresh:
+        cached_items, cached_at = _cache_get(cache_key, "Deal")
+        if cached_items is not None:
+            return types.CallToolResult(
+                content=[TextContent(type="text", text=_list_summary("deal(s)", cached_items, cache_hit=True))],
+                structuredContent={
+                    "type": "deals",
+                    "items": cached_items,
+                    "total": len(cached_items),
+                    "_schema": schema,
+                    "_cache": {"hit": True, "cached_at": cached_at},
+                },
+            )
+
+    try:
+        client = get_client()
+        filter_groups = _build_filter_groups("Deal", filter_params) if filter_params else None
+        props = _get_list_props("Deal")
+        results = await client.search_objects("deals", [p for p in props if p != "company"], filter_groups=filter_groups, limit=10)
+    except HubSpotAuthError as exc:
+        return _error_result(f"HubSpot authentication failed: {exc}")
+    except HubSpotAPIError as exc:
+        return _error_result(f"Failed to search deals: {exc}")
+    except Exception as exc:
+        return _error_result(f"Error searching deals: {exc}")
+
+    # Resolve company names for each deal
+    items = []
+    for r in results:
+        item = {p: r.get(p, "") or "" for p in props if p != "company"}
+        item["id"] = r.get("id", "")
+        item["dealstage_label"] = _deal_stage_label(item.get("dealstage", ""))
+        try:
+            co_ids = await client.get_associated_ids("deals", item["id"], "companies")
+            if co_ids:
+                cos = await client.batch_read("companies", co_ids[:1], ["name"])
+                item["company"] = cos[0].get("name", "") if cos else ""
+            else:
+                item["company"] = ""
+        except Exception:
+            item["company"] = ""
+        items.append(item)
+
+    cached_at = _cache_set(cache_key, "Deal", items)
+    return types.CallToolResult(
+        content=[TextContent(type="text", text=_list_summary("deal(s)", items))],
+        structuredContent={
+            "type": "deals",
+            "items": items,
+            "total": len(items),
+            "_schema": schema,
+            "_cache": {"hit": False, "cached_at": cached_at},
+        },
+    )
+
+
+async def hs__create_deal(
+    dealname: str = "",
+    amount: str = "",
+    pipeline: str = "default",
+    dealstage: str = "",
+    closedate: str = "",
+    dealtype: str = "",
+    description: str = "",
+    company_name: str = "",
+    contact_name: str = "",
+) -> types.CallToolResult:
+    """Create a new Deal in HubSpot CRM."""
+    log.info("hs__create_deal", dealname=dealname, dealstage=dealstage, company_name=company_name)
+    if not dealname:
+        return _error_result("dealname is required.")
+    if not dealstage:
+        return _error_result("dealstage is required.")
+
+    # Resolve company FK
+    company_id: str | None = None
+    if company_name:
+        try:
+            client = get_client()
+            company_id, suggestions = await _resolve_company(client, company_name)
+            if not company_id:
+                return _company_not_found_alert(company_name, suggestions)
+        except Exception as exc:
+            return _error_result(f"Error resolving company: {exc}")
+
+    # Resolve contact FK
+    contact_id: str | None = None
+    if contact_name:
+        try:
+            client = get_client()
+            contact_id, suggestions = await _resolve_contact(client, contact_name)
+            if not contact_id:
+                return _contact_not_found_alert(contact_name, suggestions)
+        except Exception as exc:
+            return _error_result(f"Error resolving contact: {exc}")
+
+    props = {"dealname": dealname, "pipeline": pipeline or "default", "dealstage": dealstage}
+    if amount:
+        props["amount"] = amount
+    if closedate:
+        props["closedate"] = closedate
+    if dealtype:
+        props["dealtype"] = dealtype
+    if description:
+        props["description"] = description
+
+    try:
+        client = get_client()
+        new_id = await client.create_object("deals", props)
+        # Create associations
+        if company_id:
+            await client.create_association("deals", new_id, "companies", company_id)
+        if contact_id:
+            await client.create_association("deals", new_id, "contacts", contact_id)
+    except HubSpotAuthError as exc:
+        return _error_result(f"HubSpot authentication failed: {exc}")
+    except HubSpotAPIError as exc:
+        return _error_result(f"Failed to create deal: {exc}")
+    except Exception as exc:
+        return _error_result(f"Error creating deal: {exc}")
+
+    _get_cache("Deal").clear()
+    return await hs__get_deals(refresh=True)
+
+
+async def hs__update_deal(
+    deal_id: str = "",
+    dealname: str = "",
+    amount: str = "",
+    pipeline: str = "",
+    dealstage: str = "",
+    closedate: str = "",
+    dealtype: str = "",
+    description: str = "",
+) -> types.CallToolResult:
+    """Update an existing Deal in HubSpot CRM."""
+    log.info("hs__update_deal", deal_id=deal_id)
+    if not deal_id:
+        return _error_result("deal_id is required.")
+
+    props: dict[str, str] = {}
+    if dealname:
+        props["dealname"] = dealname
+    if amount:
+        props["amount"] = amount
+    if pipeline:
+        props["pipeline"] = pipeline
+    if dealstage:
+        props["dealstage"] = dealstage
+    if closedate:
+        props["closedate"] = closedate
+    if dealtype:
+        props["dealtype"] = dealtype
+    if description:
+        props["description"] = description
+
+    if not props:
+        return _error_result("No fields to update.")
+
+    try:
+        client = get_client()
+        await client.update_object("deals", deal_id, props)
+    except HubSpotAuthError as exc:
+        return _error_result(f"HubSpot authentication failed: {exc}")
+    except HubSpotAPIError as exc:
+        return _error_result(f"Failed to update deal: {exc}")
+    except Exception as exc:
+        return _error_result(f"Error updating deal: {exc}")
+
+    _get_cache("Deal").clear()
+    return await hs__get_deals(refresh=True)
+
+
+# ── Orders tools ──────────────────────────────────────────────────────────────
+
+async def hs__get_orders(
+    order_id: str = "",
+    hs_order_name: str = "",
+    hs_fulfillment_status: str = "",
+    hs_payment_status: str = "",
+    hs_currency_code: str = "",
+    company_name: str = "",
+    contact_name: str = "",
+    deal_name: str = "",
+    action: str = "",
+    refresh: bool = False,
+) -> types.CallToolResult:
+    """Get orders from HubSpot CRM."""
+    log.info("hs__get_orders", order_id=order_id, action=action,
+             hs_order_name=hs_order_name, company_name=company_name, refresh=refresh)
+
+    schema = _get_schema("Order")
+
+    # ── Branch: blank create form ────────────────────────────────────────────
+    if action == "create":
+        return types.CallToolResult(
+            content=[TextContent(type="text", text="Opening order create form.")],
+            structuredContent={
+                "type": "form",
+                "entity": "order",
+                "mode": "create",
+                "_schema": schema,
+            },
+        )
+
+    # ── Branch: single record / edit form ────────────────────────────────────
+    if order_id:
+        try:
+            client = get_client()
+            props = [c["apiName"] for c in schema["columns"] + schema["hiddenColumns"] if not c["apiName"] in ("contact", "company", "deal")]
+            record = await client.get_object("orders", order_id, props)
+        except HubSpotAuthError as exc:
+            return _error_result(f"HubSpot authentication failed: {exc}")
+        except HubSpotAPIError as exc:
+            return _error_result(f"Failed to fetch order: {exc}")
+        except Exception as exc:
+            return _error_result(f"Error fetching order: {exc}")
+
+        if not record:
+            return _error_result(f"Order {order_id} not found.")
+
+        # Resolve FK associations
+        try:
+            co_ids = await client.get_associated_ids("orders", order_id, "companies")
+            if co_ids:
+                cos = await client.batch_read("companies", co_ids[:1], ["name"])
+                record["company"] = cos[0].get("name", "") if cos else ""
+            else:
+                record["company"] = ""
+        except Exception:
+            record["company"] = ""
+
+        try:
+            ct_ids = await client.get_associated_ids("orders", order_id, "contacts")
+            if ct_ids:
+                cts = await client.batch_read("contacts", ct_ids[:1], ["firstname", "lastname"])
+                record["contact"] = f"{cts[0].get('firstname', '')} {cts[0].get('lastname', '')}".strip() if cts else ""
+            else:
+                record["contact"] = ""
+        except Exception:
+            record["contact"] = ""
+
+        try:
+            deal_ids = await client.get_associated_ids("orders", order_id, "deals")
+            if deal_ids:
+                deals = await client.batch_read("deals", deal_ids[:1], ["dealname"])
+                record["deal"] = deals[0].get("dealname", "") if deals else ""
+            else:
+                record["deal"] = ""
+        except Exception:
+            record["deal"] = ""
+
+        if action == "edit":
+            return types.CallToolResult(
+                content=[TextContent(type="text", text=f"Opening edit form for order '{record.get('hs_order_name', '')}'.")],
+                structuredContent={
+                    "type": "form",
+                    "entity": "order",
+                    "mode": "edit",
+                    "recordId": order_id,
+                    "prefill": record,
+                    "_schema": schema,
+                },
+            )
+
+        return types.CallToolResult(
+            content=[TextContent(type="text", text=f"Order: {record.get('hs_order_name', '')}.")],
+            structuredContent={
+                "type": "orders",
+                "items": [record],
+                "total": 1,
+                "_schema": schema,
+            },
+        )
+
+    # ── Branch: FK filter by company_name ────────────────────────────────────
+    if company_name:
+        try:
+            client = get_client()
+            co_id, suggestions = await _resolve_company(client, company_name)
+            if not co_id:
+                return _company_not_found_alert(company_name, suggestions)
+            order_ids = await client.get_associated_ids("companies", co_id, "orders")
+            if not order_ids:
+                return types.CallToolResult(
+                    content=[TextContent(type="text", text=f"No orders found for company '{company_name}'.")],
+                    structuredContent={"type": "orders", "items": [], "total": 0, "_schema": schema},
+                )
+            native_props = [c["apiName"] for c in schema["columns"] if c["apiName"] not in ("contact", "company", "deal")]
+            items = await client.batch_read("orders", order_ids, native_props)
+            for item in items:
+                item["company"] = company_name
+                item["contact"] = ""
+                item["deal"] = ""
+        except HubSpotAuthError as exc:
+            return _error_result(f"HubSpot authentication failed: {exc}")
+        except Exception as exc:
+            return _error_result(f"Error fetching orders by company: {exc}")
+
+        cached_at = _cache_set(f"orders_co_{company_name}", "Order", items)
+        return types.CallToolResult(
+            content=[TextContent(type="text", text=f"Showing {len(items)} order(s) for '{company_name}'.")],
+            structuredContent={"type": "orders", "items": items, "total": len(items), "_schema": schema, "_cache": {"hit": False, "cached_at": cached_at}},
+        )
+
+    # ── Branch: FK filter by contact_name ────────────────────────────────────
+    if contact_name:
+        try:
+            client = get_client()
+            ct_id, suggestions = await _resolve_contact(client, contact_name)
+            if not ct_id:
+                return _contact_not_found_alert(contact_name, suggestions)
+            order_ids = await client.get_associated_ids("contacts", ct_id, "orders")
+            if not order_ids:
+                return types.CallToolResult(
+                    content=[TextContent(type="text", text=f"No orders found for contact '{contact_name}'.")],
+                    structuredContent={"type": "orders", "items": [], "total": 0, "_schema": schema},
+                )
+            native_props = [c["apiName"] for c in schema["columns"] if c["apiName"] not in ("contact", "company", "deal")]
+            items = await client.batch_read("orders", order_ids, native_props)
+            for item in items:
+                item["contact"] = contact_name
+                item["company"] = ""
+                item["deal"] = ""
+        except HubSpotAuthError as exc:
+            return _error_result(f"HubSpot authentication failed: {exc}")
+        except Exception as exc:
+            return _error_result(f"Error fetching orders by contact: {exc}")
+
+        cached_at = _cache_set(f"orders_ct_{contact_name}", "Order", items)
+        return types.CallToolResult(
+            content=[TextContent(type="text", text=f"Showing {len(items)} order(s) for '{contact_name}'.")],
+            structuredContent={"type": "orders", "items": items, "total": len(items), "_schema": schema, "_cache": {"hit": False, "cached_at": cached_at}},
+        )
+
+    # ── Branch: FK filter by deal_name ───────────────────────────────────────
+    if deal_name:
+        try:
+            client = get_client()
+            d_id, suggestions = await _resolve_deal(client, deal_name)
+            if not d_id:
+                return _deal_not_found_alert(deal_name, suggestions)
+            order_ids = await client.get_associated_ids("deals", d_id, "orders")
+            if not order_ids:
+                return types.CallToolResult(
+                    content=[TextContent(type="text", text=f"No orders found for deal '{deal_name}'.")],
+                    structuredContent={"type": "orders", "items": [], "total": 0, "_schema": schema},
+                )
+            native_props = [c["apiName"] for c in schema["columns"] if c["apiName"] not in ("contact", "company", "deal")]
+            items = await client.batch_read("orders", order_ids, native_props)
+            for item in items:
+                item["deal"] = deal_name
+                item["contact"] = ""
+                item["company"] = ""
+        except HubSpotAuthError as exc:
+            return _error_result(f"HubSpot authentication failed: {exc}")
+        except Exception as exc:
+            return _error_result(f"Error fetching orders by deal: {exc}")
+
+        cached_at = _cache_set(f"orders_dl_{deal_name}", "Order", items)
+        return types.CallToolResult(
+            content=[TextContent(type="text", text=f"Showing {len(items)} order(s) for '{deal_name}'.")],
+            structuredContent={"type": "orders", "items": items, "total": len(items), "_schema": schema, "_cache": {"hit": False, "cached_at": cached_at}},
+        )
+
+    # ── Branch: list / filter ────────────────────────────────────────────────
+    filter_params = {k: v for k, v in {
+        "hs_order_name": hs_order_name,
+        "hs_fulfillment_status": hs_fulfillment_status,
+        "hs_payment_status": hs_payment_status,
+        "hs_currency_code": hs_currency_code,
+    }.items() if v}
+    filter_sig = _filter_signature(filter_params)
+    cache_key = f"orders_{filter_sig}" if filter_sig else "orders_all"
+
+    if not refresh:
+        cached_items, cached_at = _cache_get(cache_key, "Order")
+        if cached_items is not None:
+            return types.CallToolResult(
+                content=[TextContent(type="text", text=_list_summary("order(s)", cached_items, cache_hit=True))],
+                structuredContent={"type": "orders", "items": cached_items, "total": len(cached_items), "_schema": schema, "_cache": {"hit": True, "cached_at": cached_at}},
+            )
+
+    try:
+        client = get_client()
+        filter_groups = _build_filter_groups("Order", filter_params) if filter_params else None
+        native_props = [c["apiName"] for c in schema["columns"] if c["apiName"] not in ("contact", "company", "deal")]
+        results = await client.search_objects("orders", native_props, filter_groups=filter_groups, limit=10)
+    except HubSpotAuthError as exc:
+        return _error_result(f"HubSpot authentication failed: {exc}")
+    except HubSpotAPIError as exc:
+        return _error_result(f"Failed to search orders: {exc}")
+    except Exception as exc:
+        return _error_result(f"Error searching orders: {exc}")
+
+    # Resolve FK names for each order
+    items = []
+    for r in results:
+        item = {p: r.get(p, "") or "" for p in native_props}
+        item["id"] = r.get("id", "")
+        try:
+            co_ids = await client.get_associated_ids("orders", item["id"], "companies")
+            if co_ids:
+                cos = await client.batch_read("companies", co_ids[:1], ["name"])
+                item["company"] = cos[0].get("name", "") if cos else ""
+            else:
+                item["company"] = ""
+        except Exception:
+            item["company"] = ""
+        try:
+            ct_ids = await client.get_associated_ids("orders", item["id"], "contacts")
+            if ct_ids:
+                cts = await client.batch_read("contacts", ct_ids[:1], ["firstname", "lastname"])
+                item["contact"] = f"{cts[0].get('firstname', '')} {cts[0].get('lastname', '')}".strip() if cts else ""
+            else:
+                item["contact"] = ""
+        except Exception:
+            item["contact"] = ""
+        try:
+            d_ids = await client.get_associated_ids("orders", item["id"], "deals")
+            if d_ids:
+                ds = await client.batch_read("deals", d_ids[:1], ["dealname"])
+                item["deal"] = ds[0].get("dealname", "") if ds else ""
+            else:
+                item["deal"] = ""
+        except Exception:
+            item["deal"] = ""
+        items.append(item)
+
+    cached_at = _cache_set(cache_key, "Order", items)
+    return types.CallToolResult(
+        content=[TextContent(type="text", text=_list_summary("order(s)", items))],
+        structuredContent={"type": "orders", "items": items, "total": len(items), "_schema": schema, "_cache": {"hit": False, "cached_at": cached_at}},
+    )
+
+
+async def hs__create_order(
+    hs_order_name: str = "",
+    hs_total_price: str = "",
+    hs_currency_code: str = "",
+    hs_fulfillment_status: str = "",
+    hs_payment_status: str = "",
+    hs_closed_date: str = "",
+    hs_source_store: str = "",
+    company_name: str = "",
+    contact_name: str = "",
+    deal_name: str = "",
+) -> types.CallToolResult:
+    """Create a new Order in HubSpot CRM."""
+    log.info("hs__create_order", hs_order_name=hs_order_name, company_name=company_name)
+    if not hs_order_name:
+        return _error_result("hs_order_name is required.")
+
+    # Resolve FKs
+    company_id: str | None = None
+    if company_name:
+        try:
+            client = get_client()
+            company_id, suggestions = await _resolve_company(client, company_name)
+            if not company_id:
+                return _company_not_found_alert(company_name, suggestions)
+        except Exception as exc:
+            return _error_result(f"Error resolving company: {exc}")
+
+    contact_id: str | None = None
+    if contact_name:
+        try:
+            client = get_client()
+            contact_id, suggestions = await _resolve_contact(client, contact_name)
+            if not contact_id:
+                return _contact_not_found_alert(contact_name, suggestions)
+        except Exception as exc:
+            return _error_result(f"Error resolving contact: {exc}")
+
+    deal_id: str | None = None
+    if deal_name:
+        try:
+            client = get_client()
+            deal_id, suggestions = await _resolve_deal(client, deal_name)
+            if not deal_id:
+                return _deal_not_found_alert(deal_name, suggestions)
+        except Exception as exc:
+            return _error_result(f"Error resolving deal: {exc}")
+
+    props: dict[str, str] = {"hs_order_name": hs_order_name}
+    if hs_total_price:
+        props["hs_total_price"] = hs_total_price
+    if hs_currency_code:
+        props["hs_currency_code"] = hs_currency_code
+    if hs_fulfillment_status:
+        props["hs_fulfillment_status"] = hs_fulfillment_status
+    if hs_payment_status:
+        props["hs_payment_status"] = hs_payment_status
+    if hs_closed_date:
+        props["hs_closed_date"] = hs_closed_date
+    if hs_source_store:
+        props["hs_source_store"] = hs_source_store
+
+    try:
+        client = get_client()
+        new_id = await client.create_object("orders", props)
+        if company_id:
+            await client.create_association("orders", new_id, "companies", company_id)
+        if contact_id:
+            await client.create_association("orders", new_id, "contacts", contact_id)
+        if deal_id:
+            await client.create_association("orders", new_id, "deals", deal_id)
+    except HubSpotAuthError as exc:
+        return _error_result(f"HubSpot authentication failed: {exc}")
+    except HubSpotAPIError as exc:
+        return _error_result(f"Failed to create order: {exc}")
+    except Exception as exc:
+        return _error_result(f"Error creating order: {exc}")
+
+    _get_cache("Order").clear()
+    return await hs__get_orders(refresh=True)
+
+
+async def hs__update_order(
+    order_id: str = "",
+    hs_order_name: str = "",
+    hs_total_price: str = "",
+    hs_currency_code: str = "",
+    hs_fulfillment_status: str = "",
+    hs_payment_status: str = "",
+    hs_closed_date: str = "",
+    hs_source_store: str = "",
+) -> types.CallToolResult:
+    """Update an existing Order in HubSpot CRM."""
+    log.info("hs__update_order", order_id=order_id)
+    if not order_id:
+        return _error_result("order_id is required.")
+
+    props: dict[str, str] = {}
+    if hs_order_name:
+        props["hs_order_name"] = hs_order_name
+    if hs_total_price:
+        props["hs_total_price"] = hs_total_price
+    if hs_currency_code:
+        props["hs_currency_code"] = hs_currency_code
+    if hs_fulfillment_status:
+        props["hs_fulfillment_status"] = hs_fulfillment_status
+    if hs_payment_status:
+        props["hs_payment_status"] = hs_payment_status
+    if hs_closed_date:
+        props["hs_closed_date"] = hs_closed_date
+    if hs_source_store:
+        props["hs_source_store"] = hs_source_store
+
+    if not props:
+        return _error_result("No fields to update.")
+
+    try:
+        client = get_client()
+        await client.update_object("orders", order_id, props)
+    except HubSpotAuthError as exc:
+        return _error_result(f"HubSpot authentication failed: {exc}")
+    except HubSpotAPIError as exc:
+        return _error_result(f"Failed to update order: {exc}")
+    except Exception as exc:
+        return _error_result(f"Error updating order: {exc}")
+
+    _get_cache("Order").clear()
+    return await hs__get_orders(refresh=True)
+
+
+# ── Products tools ────────────────────────────────────────────────────────────
+
+async def hs__get_products(
+    product_id: str = "",
+    name: str = "",
+    hs_status: str = "",
+    hs_product_type: str = "",
+    action: str = "",
+    refresh: bool = False,
+) -> types.CallToolResult:
+    """Get products. Branches: id+edit→form, id→list-of-one, filters→filtered, bare→top 10."""
+    log.info("hs__get_products", product_id=product_id, action=action,
+             name=name, hs_status=hs_status, hs_product_type=hs_product_type, refresh=refresh)
+
+    cfg = _get_schema("Product")
+
+    # Branch 1a — action="create" → blank create form
+    if action == "create":
+        prefill = {field["name"]: "" for field in cfg["formFields"]}
+        if name:
+            prefill["name"] = name
+        if hs_status:
+            prefill["hs_status"] = hs_status
+        if hs_product_type:
+            prefill["hs_product_type"] = hs_product_type
+        return types.CallToolResult(
+            content=[TextContent(type="text", text="Opening create form for a new product.")],
+            structuredContent={
+                "type": "form", "entity": "product", "mode": "create",
+                "recordId": "", "prefill": prefill,
+                "_schema": cfg,
+            },
+        )
+
+    # Branch 1b — id + action="edit"/"change" → prefilled edit form
+    if product_id and action in ("edit", "change"):
+        try:
+            client = get_client()
+            record = await client.get_object("products", product_id, _get_all_props("Product"))
+        except HubSpotAuthError as exc:
+            return _error_result(f"HubSpot authentication failed: {exc}")
+        except HubSpotAPIError as exc:
+            return _error_result(f"Product {product_id} not found: {exc}")
+        except Exception as exc:
+            return _error_result(f"Error looking up product: {exc}")
+
+        prefill = {field["name"]: record.get(field["name"], "") or "" for field in cfg["formFields"]}
+        return types.CallToolResult(
+            content=[TextContent(type="text", text=f"Opening edit form for product: {record.get('name', product_id)}.")],
+            structuredContent={
+                "type": "form", "entity": "product", "mode": "edit",
+                "recordId": record.get("id", product_id), "prefill": prefill,
+                "_schema": cfg,
+            },
+        )
+
+    # Branch 2 — id alone → list-of-one
+    if product_id:
+        try:
+            client = get_client()
+            record = await client.get_object("products", product_id, _get_list_props("Product"))
+        except HubSpotAuthError as exc:
+            return _error_result(f"HubSpot authentication failed: {exc}")
+        except HubSpotAPIError as exc:
+            return _error_result(f"Product {product_id} not found: {exc}")
+        except Exception as exc:
+            return _error_result(f"Error fetching product: {exc}")
+
+        items = [record]
+        return types.CallToolResult(
+            content=[TextContent(type="text", text=_list_summary("product(s)", items))],
+            structuredContent={
+                "type": "products", "total": len(items), "items": items,
+                "_schema": cfg, "_cache": {"hit": False, "cached_at": _now_iso()},
+            },
+        )
+
+    # Branch 3 — filter-based or bare list
+    filter_params = {
+        "name": name, "hs_product_type": hs_product_type, "hs_status": hs_status,
+    }
+    filter_groups = _build_filter_groups("Product", filter_params)
+
+    filter_sig = _filter_signature(filter_params)
+    cache_key = f"products:{filter_sig}" if filter_sig else "products"
+    if not refresh:
+        cached_items, cached_at = _cache_get(cache_key, "Product")
+        if cached_items is not None:
+            return types.CallToolResult(
+                content=[TextContent(type="text", text=_list_summary("product(s)", cached_items, cache_hit=True))],
+                structuredContent={
+                    "type": "products", "total": len(cached_items), "items": cached_items,
+                    "_schema": cfg, "_cache": {"hit": True, "cached_at": cached_at},
+                },
+            )
+
+    try:
+        client = get_client()
+        props = _get_list_props("Product")
+        items = await client.search_objects("products", props, filter_groups=filter_groups, limit=10)
+    except HubSpotAuthError as exc:
+        return _error_result(f"HubSpot authentication failed: {exc}")
+    except HubSpotAPIError as exc:
+        return _error_result(f"Failed to fetch products: {exc}")
+    except Exception as exc:
+        return _error_result(f"Error fetching products: {exc}")
+
+    cached_at = _cache_set(cache_key, "Product", items)
+    return types.CallToolResult(
+        content=[TextContent(type="text", text=_list_summary("product(s)", items))],
+        structuredContent={
+            "type": "products", "total": len(items), "items": items,
+            "_schema": cfg, "_cache": {"hit": False, "cached_at": cached_at},
+        },
+    )
+
+
+async def hs__create_product(
+    name: str,
+    hs_sku: str = "",
+    price: str = "",
+    hs_status: str = "",
+    hs_product_type: str = "",
+    recurringbillingfrequency: str = "",
+    hs_recurring_billing_period: str = "",
+    description: str = "",
+) -> types.CallToolResult:
+    """Create a new Product in HubSpot CRM. Requires name. Returns updated list."""
+    log.info("hs__create_product", name=name, hs_sku=hs_sku, price=price,
+             hs_status=hs_status, hs_product_type=hs_product_type)
+
+    props: dict[str, Any] = {"name": name}
+    if hs_sku:
+        props["hs_sku"] = hs_sku
+    if price:
+        props["price"] = price
+    if hs_status:
+        props["hs_status"] = hs_status
+    if hs_product_type:
+        props["hs_product_type"] = hs_product_type
+    if recurringbillingfrequency:
+        props["recurringbillingfrequency"] = recurringbillingfrequency
+    if hs_recurring_billing_period:
+        props["hs_recurring_billing_period"] = hs_recurring_billing_period
+    if description:
+        props["description"] = description
+
+    try:
+        client = get_client()
+        new_id = await client.create_object("products", props)
+    except HubSpotAuthError as exc:
+        return _error_result(f"HubSpot authentication failed: {exc}")
+    except HubSpotAPIError as exc:
+        return _error_result(f"Failed to create product: {exc}")
+    except Exception as exc:
+        return _error_result(f"Unexpected error creating product: {exc}")
+
+    # Refresh list
+    try:
+        items = await client.search_objects("products", _get_list_props("Product"), limit=10)
+    except Exception:
+        items = []
+
+    cfg = _get_schema("Product")
+    _cache_set("products", "Product", items)
+    return types.CallToolResult(
+        content=[TextContent(type="text", text=f"Product '{name}' created (Id: {new_id}).")],
+        structuredContent={
+            "type": "products", "total": len(items), "items": items,
+            "_schema": cfg, "_createdId": new_id,
+            "_cache": {"hit": False, "cached_at": _now_iso()},
+        },
+    )
+
+
+async def hs__update_product(
+    product_id: str,
+    name: str = "",
+    hs_sku: str = "",
+    price: str = "",
+    hs_status: str = "",
+    hs_product_type: str = "",
+    recurringbillingfrequency: str = "",
+    hs_recurring_billing_period: str = "",
+    description: str = "",
+) -> types.CallToolResult:
+    """Update an existing Product by id. Only provided fields are updated."""
+    log.info("hs__update_product", product_id=product_id, name=name)
+
+    if not product_id:
+        return _error_result("product_id is required.")
+
+    props: dict[str, Any] = {}
+    if name:
+        props["name"] = name
+    if hs_sku:
+        props["hs_sku"] = hs_sku
+    if price:
+        props["price"] = price
+    if hs_status:
+        props["hs_status"] = hs_status
+    if hs_product_type:
+        props["hs_product_type"] = hs_product_type
+    if recurringbillingfrequency:
+        props["recurringbillingfrequency"] = recurringbillingfrequency
+    if hs_recurring_billing_period:
+        props["hs_recurring_billing_period"] = hs_recurring_billing_period
+    if description:
+        props["description"] = description
+
+    if not props:
+        return _error_result("No fields provided to update.")
+
+    try:
+        client = get_client()
+        await client.update_object("products", product_id, props)
+    except HubSpotAuthError as exc:
+        return _error_result(f"HubSpot authentication failed: {exc}")
+    except HubSpotAPIError as exc:
+        return _error_result(f"Failed to update product: {exc}")
+    except Exception as exc:
+        return _error_result(f"Unexpected error updating product: {exc}")
+
+    # Refresh list
+    try:
+        items = await client.search_objects("products", _get_list_props("Product"), limit=10)
+    except Exception:
+        items = []
+
+    cfg = _get_schema("Product")
+    _cache_set("products", "Product", items)
+    return types.CallToolResult(
+        content=[TextContent(type="text", text=f"Product {product_id} updated.")],
+        structuredContent={
+            "type": "products", "total": len(items), "items": items,
+            "_schema": cfg, "_updatedId": product_id,
+            "_cache": {"hit": False, "cached_at": _now_iso()},
+        },
+    )
+
+
 # ── Tool specs (registered by server) ────────────────────────────────────────
 
 TOOL_SPECS: list[dict] = [
@@ -900,7 +2009,7 @@ TOOL_SPECS: list[dict] = [
         "description": (
             "Get companies from HubSpot CRM (10 most recent). "
             "Pass company_id to view one record; add action='edit' to open the edit form. "
-            "Filters: name (text search), "
+            "Filters: name (text search), domain (text search), "
             "type (PROSPECT, PARTNER, RESELLER, VENDOR, OTHER), "
             "lifecyclestage (subscriber, lead, marketingqualifiedlead, salesqualifiedlead, "
             "opportunity, customer, evangelist, other), city, country."
@@ -927,31 +2036,14 @@ TOOL_SPECS: list[dict] = [
         "handler": hs__update_company,
     },
     {
-        "name": "hs__get_company_contacts",
+        "name": "hs__get_associations",
         "description": (
-            "Get contacts associated with a Company in HubSpot CRM. "
-            "Required: company_id. Returns first name, last name, email, phone, lifecycle stage."
+            "Get records associated to an entity in HubSpot CRM. "
+            "Required: entity_type (companies or contacts), entity_id, "
+            "association_type (contacts, deals, tickets, or companies). "
+            "Returns fields relevant to the target type."
         ),
-        "handler": hs__get_company_contacts,
-        "_meta": {"ui": {"resourceUri": WIDGET_URI}},
-    },
-    {
-        "name": "hs__get_company_deals",
-        "description": (
-            "Get deals associated with a Company in HubSpot CRM. "
-            "Required: company_id. Returns deal name, amount, stage, close date, pipeline."
-        ),
-        "handler": hs__get_company_deals,
-        "_meta": {"ui": {"resourceUri": WIDGET_URI}},
-    },
-    {
-        "name": "hs__get_company_tickets",
-        "description": (
-            "Get tickets associated with a Company in HubSpot CRM. "
-            "Required: company_id. Returns subject, status, priority, category."
-        ),
-        "handler": hs__get_company_tickets,
-        "_meta": {"ui": {"resourceUri": WIDGET_URI}},
+        "handler": hs__get_associations,
     },
     {
         "name": "hs__get_contacts",
@@ -959,7 +2051,8 @@ TOOL_SPECS: list[dict] = [
             "Get contacts from HubSpot CRM (10 most recent). "
             "Pass contact_id to view one record; add action='edit' to open the edit form; "
             "action='create' to open a blank create form. "
-            "Filters: firstname, lastname, email, company_name (FK — searches all associations), "
+            "Filters: firstname, lastname, email, jobtitle, city, "
+            "company_name (FK — searches all associations), "
             "lifecyclestage (subscriber/lead/marketingqualifiedlead/salesqualifiedlead/"
             "opportunity/customer/evangelist/other)."
         ),
@@ -981,6 +2074,102 @@ TOOL_SPECS: list[dict] = [
             "Fields: firstname, lastname, email, phone, jobtitle, lifecyclestage, city."
         ),
         "handler": hs__update_contact,
+    },
+    {
+        "name": "hs__get_deals",
+        "description": (
+            "Get deals from HubSpot CRM (10 most recent). "
+            "Pass deal_id to view one record; add action='edit' to open the edit form; "
+            "action='create' to open a blank create form. "
+            "Filters: dealname (text search), dealstage (stage ID or closedwon/closedlost), "
+            "pipeline (default), dealtype (newbusiness/existingbusiness), "
+            "company_name (FK — finds deals associated to that company)."
+        ),
+        "handler": hs__get_deals,
+    },
+    {
+        "name": "hs__create_deal",
+        "description": (
+            "Create a new Deal in HubSpot CRM. Required: dealname, dealstage, pipeline. "
+            "Optional: amount, closedate (ISO date), dealtype (newbusiness/existingbusiness), "
+            "description, company_name (associates to matching company), "
+            "contact_name (associates to matching contact)."
+        ),
+        "handler": hs__create_deal,
+    },
+    {
+        "name": "hs__update_deal",
+        "description": (
+            "Update an existing Deal in HubSpot CRM by its record Id. "
+            "Only fields provided will be updated. "
+            "Fields: dealname, amount, pipeline, dealstage, closedate, dealtype, description."
+        ),
+        "handler": hs__update_deal,
+    },
+    {
+        "name": "hs__get_orders",
+        "description": (
+            "Get orders from HubSpot CRM (10 most recent). "
+            "Pass order_id to view one record; add action='edit' to open the edit form; "
+            "action='create' to open a blank create form. "
+            "Filters: hs_order_name (text search), hs_fulfillment_status, hs_payment_status, "
+            "hs_currency_code, company_name (FK), contact_name (FK), deal_name (FK)."
+        ),
+        "handler": hs__get_orders,
+    },
+    {
+        "name": "hs__create_order",
+        "description": (
+            "Create a new Order in HubSpot CRM. Required: hs_order_name. "
+            "Optional: hs_total_price, hs_currency_code, hs_fulfillment_status, "
+            "hs_payment_status, hs_closed_date (ISO date), hs_source_store, "
+            "company_name (associates to company), contact_name (associates to contact), "
+            "deal_name (associates to deal)."
+        ),
+        "handler": hs__create_order,
+    },
+    {
+        "name": "hs__update_order",
+        "description": (
+            "Update an existing Order in HubSpot CRM by its record Id. "
+            "Only fields provided will be updated. "
+            "Fields: hs_order_name, hs_total_price, hs_currency_code, "
+            "hs_fulfillment_status, hs_payment_status, hs_closed_date, hs_source_store."
+        ),
+        "handler": hs__update_order,
+    },
+    {
+        "name": "hs__get_products",
+        "description": (
+            "Get products from HubSpot CRM (10 most recent). "
+            "Pass product_id to view one record; add action='edit' to open the edit form; "
+            "action='create' to open a blank create form. "
+            "Filters: name (text search), hs_product_type (inventory/non_inventory/service), "
+            "hs_status (active/inactive)."
+        ),
+        "handler": hs__get_products,
+    },
+    {
+        "name": "hs__create_product",
+        "description": (
+            "Create a new Product in HubSpot CRM. Required: name. "
+            "Optional: hs_sku, price, hs_status (active/inactive), "
+            "hs_product_type (inventory/non_inventory/service), "
+            "recurringbillingfrequency (weekly/biweekly/monthly/quarterly/per_six_months/"
+            "annually/per_two_years/per_three_years/per_four_years/per_five_years), "
+            "hs_recurring_billing_period (term), description."
+        ),
+        "handler": hs__create_product,
+    },
+    {
+        "name": "hs__update_product",
+        "description": (
+            "Update an existing Product in HubSpot CRM by its record Id. "
+            "Only fields provided will be updated. "
+            "Fields: name, hs_sku, price, hs_status, hs_product_type, "
+            "recurringbillingfrequency, hs_recurring_billing_period, description."
+        ),
+        "handler": hs__update_product,
     },
 ]
 

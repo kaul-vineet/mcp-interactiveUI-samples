@@ -6,6 +6,9 @@ import { useStyles } from './styles';
 import { SkeletonTable } from './components/SkeletonTable';
 import { CompaniesView } from './views/CompaniesView';
 import { ContactsView } from './views/ContactsView';
+import { DealsView } from './views/DealsView';
+import { OrdersView } from './views/OrdersView';
+import { ProductsView } from './views/ProductsView';
 import { FormView } from './views/FormView';
 
 // ── HubSpotApp — top-level router ─────────────────────────────────────────
@@ -64,6 +67,42 @@ export default function HubSpotApp() {
     case 'contacts':
       content = (
         <ContactsView
+          items={data.items || []}
+          callTool={callTool}
+          toast={toast}
+          theme={theme}
+          cacheInfo={data._cache}
+          isFullscreen={isFullscreen}
+        />
+      );
+      break;
+    case 'deals':
+      content = (
+        <DealsView
+          items={data.items || []}
+          callTool={callTool}
+          toast={toast}
+          theme={theme}
+          cacheInfo={data._cache}
+          isFullscreen={isFullscreen}
+        />
+      );
+      break;
+    case 'orders':
+      content = (
+        <OrdersView
+          items={data.items || []}
+          callTool={callTool}
+          toast={toast}
+          theme={theme}
+          cacheInfo={data._cache}
+          isFullscreen={isFullscreen}
+        />
+      );
+      break;
+    case 'products':
+      content = (
+        <ProductsView
           items={data.items || []}
           callTool={callTool}
           toast={toast}

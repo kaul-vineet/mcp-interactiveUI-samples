@@ -3,7 +3,16 @@ import { tokens } from '@fluentui/react-components';
 // ── HubSpot Picklist Constants ─────────────────────────────────────────────
 export const HS_TYPES = ['PROSPECT', 'PARTNER', 'RESELLER', 'VENDOR', 'OTHER'];
 export const HS_LIFECYCLESTAGES = ['subscriber', 'lead', 'marketingqualifiedlead', 'salesqualifiedlead', 'opportunity', 'customer', 'evangelist', 'other'];
-export const HS_INDUSTRIES = ['Agriculture', 'Apparel', 'Banking', 'Biotechnology', 'Construction', 'Consulting', 'Education', 'Electronics', 'Energy', 'Engineering', 'Entertainment', 'Finance', 'Food & Beverage', 'Government', 'Healthcare', 'Hospitality', 'Insurance', 'Manufacturing', 'Media', 'Real Estate', 'Retail', 'Technology', 'Telecommunications', 'Transportation', 'Utilities', 'Other'];
+export const HS_INDUSTRIES = [
+  'ACCOUNTING', 'AUTOMOTIVE', 'BANKING', 'BIOTECHNOLOGY', 'COMPUTER_SOFTWARE',
+  'CONSTRUCTION', 'CONSUMER_GOODS', 'EDUCATION_MANAGEMENT', 'ENTERTAINMENT',
+  'FINANCIAL_SERVICES', 'FOOD_BEVERAGES', 'GOVERNMENT_ADMINISTRATION',
+  'HEALTH_WELLNESS_AND_FITNESS', 'HOSPITAL_HEALTH_CARE', 'HOSPITALITY',
+  'INFORMATION_TECHNOLOGY_AND_SERVICES', 'INSURANCE', 'INTERNET',
+  'MANAGEMENT_CONSULTING', 'MANUFACTURING', 'MARKETING_AND_ADVERTISING',
+  'MINING_METALS', 'OIL_ENERGY', 'PHARMACEUTICALS', 'REAL_ESTATE',
+  'RETAIL', 'TELECOMMUNICATIONS', 'TRANSPORTATION_TRUCKING_RAILROAD', 'UTILITIES',
+];
 
 // ── Status pill styles ─────────────────────────────────────────────────────
 export type PillStyle = { background: string; color: string; border: string };

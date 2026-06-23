@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Button, Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow, Text, tokens } from '@fluentui/react-components';
-import { BuildingRegular, ChevronDownRegular, ChevronRightRegular, EditRegular } from '@fluentui/react-icons';
+import { Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, Table, TableBody, TableCell, TableHeader, TableHeaderCell, TableRow, Text, tokens } from '@fluentui/react-components';
+import { BuildingRegular, ChevronDownRegular, ChevronRightRegular, DismissRegular, EditRegular, EyeRegular } from '@fluentui/react-icons';
 import { useStyles, H_CELL, D_CELL } from '../styles';
 import { hs } from '../theme';
 import { COMPANY_FORM_FIELDS, HS_INDUSTRIES } from '../constants';
@@ -23,13 +23,13 @@ export function CompaniesView({ items: initItems, callTool, toast, theme, cacheI
   const [cacheInfo, setCacheInfo] = useState(initCacheInfo);
   const [refreshing, setRefreshing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', domain: '', phone: '', city: '', industry: '' });
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loadingExpand, setLoadingExpand] = useState<string | null>(null);
   const [companyDetails, setCompanyDetails] = useState<Record<string, CompanyDetails>>({});
   const [lastSavedId, setLastSavedId] = useState<string | null>(null);
+  const [viewingCompany, setViewingCompany] = useState<any | null>(null);
 
   useEffect(() => { setLocalItems(initItems); setCacheInfo(initCacheInfo); }, [initItems]);
 
@@ -43,33 +43,55 @@ export function CompaniesView({ items: initItems, callTool, toast, theme, cacheI
     finally { setRefreshing(false); }
   };
 
+  const loadCompanyDetails = useCallback(async (coId: string) => {
+    if (companyDetails[coId]) return companyDetails[coId];
+    try {
+      const [rc, rd, rt] = await Promise.all([
+        callTool('hs__get_associations', { entity_type: 'companies', entity_id: coId, association_type: 'contacts' }),
+        callTool('hs__get_associations', { entity_type: 'companies', entity_id: coId, association_type: 'deals' }),
+        callTool('hs__get_associations', { entity_type: 'companies', entity_id: coId, association_type: 'tickets' }),
+      ]);
+      const details = { contacts: rc?.items || [], deals: rd?.items || [], tickets: rt?.items || [] };
+      setCompanyDetails(p => ({ ...p, [coId]: details }));
+      return details;
+    } catch {
+      const empty = { contacts: [], deals: [], tickets: [] };
+      setCompanyDetails(p => ({ ...p, [coId]: empty }));
+      return empty;
+    }
+  }, [companyDetails, callTool]);
+
   const toggleExpand = useCallback(async (coId: string) => {
     if (expandedId === coId) { setExpandedId(null); return; }
     setExpandedId(coId);
     if (companyDetails[coId]) return;
     setLoadingExpand(coId);
-    try {
-      const [rc, rd, rt] = await Promise.all([
-        callTool('hs__get_company_contacts', { company_id: coId }),
-        callTool('hs__get_company_deals', { company_id: coId }),
-        callTool('hs__get_company_tickets', { company_id: coId }),
-      ]);
-      setCompanyDetails(p => ({ ...p, [coId]: { contacts: rc?.items || [], deals: rd?.items || [], tickets: rt?.items || [] } }));
-    } catch { setCompanyDetails(p => ({ ...p, [coId]: { contacts: [], deals: [], tickets: [] } })); }
+    try { await loadCompanyDetails(coId); }
     finally { setLoadingExpand(null); }
-  }, [expandedId, companyDetails, callTool]);
+  }, [expandedId, companyDetails, loadCompanyDetails]);
 
-  const openEdit = (co: any) => { setCreating(false); setExpandedId(null); setEditingId(co.id); setForm({ name: co.name || '', domain: co.domain || '', phone: co.phone || '', city: co.city || '', industry: co.industry || '' }); };
-  const openCreate = () => { setEditingId(null); setCreating(true); setForm({ name: '', domain: '', phone: '', city: '', industry: '' }); };
-  const cancel = () => { setEditingId(null); setCreating(false); };
+  const openView = (co: any) => { setViewingCompany(co); };
+
+  const openEdit = (co: any) => {
+    setViewingCompany(null);
+    setExpandedId(null);
+    setEditingId(co.id);
+    setForm({ name: co.name || '', domain: co.domain || '', phone: co.phone || '', city: co.city || '', industry: co.industry || '' });
+  };
+  const cancel = () => { setEditingId(null); };
 
   const handleSave = async () => {
+    if (!editingId) return;
     setSaving(true);
     try {
-      let result: any;
-      if (creating) { result = await callTool('hs__create_company', form); toast('Company created'); }
-      else { result = await callTool('hs__update_company', { company_id: editingId, ...form }); toast('Company updated'); setLastSavedId(editingId); }
+      const result = await callTool('hs__update_company', { company_id: editingId, ...form });
+      if (result?.type === 'error' || result?.type === 'alert') {
+        toast(result.message || 'Update failed', { intent: 'error' });
+        setSaving(false);
+        return;
+      }
       if (result?.items) { setLocalItems(result.items); setCacheInfo(result?._cache); }
+      toast('Company updated'); setLastSavedId(editingId);
       cancel();
     } catch (e: any) { toast(e.message || 'Failed', 'error'); }
     finally { setSaving(false); }
@@ -83,6 +105,17 @@ export function CompaniesView({ items: initItems, callTool, toast, theme, cacheI
     value: (form as any)[f.key] || '',
     onChange: (v: string) => setF(f.key, v),
   }));
+
+  const companyViewFields = viewingCompany ? [
+    { label: 'Name', value: viewingCompany.name },
+    { label: 'Domain', value: viewingCompany.domain },
+    { label: 'Type', value: viewingCompany.type },
+    { label: 'Lifecycle Stage', value: viewingCompany.lifecyclestage },
+    { label: 'City', value: viewingCompany.city },
+    { label: 'Phone', value: viewingCompany.phone },
+    { label: 'Country', value: viewingCompany.country },
+    { label: 'Description', value: viewingCompany.description },
+  ] : [];
 
   // ── Drill-down sub-table ────────────────────────────────────────────────
   const SubTable = ({ headers, rows }: { headers: string[]; rows: React.ReactNode[][] }) => (
@@ -105,7 +138,7 @@ export function CompaniesView({ items: initItems, callTool, toast, theme, cacheI
   );
 
   return (
-    <div className={styles.card}>
+    <div className={styles.card} style={loadingExpand ? { cursor: 'wait', pointerEvents: 'none' } : undefined}>
       <HsViewHeader
         icon={<BuildingRegular style={{ fontSize: '18px', color: tokens.colorBrandForeground1 }} />}
         title="Companies"
@@ -119,15 +152,17 @@ export function CompaniesView({ items: initItems, callTool, toast, theme, cacheI
         <TableHeader>
           <TableRow style={{ background: t.headerBg }}>
             <TableHeaderCell style={{ ...H_CELL, width: 32 }} />
-            <TableHeaderCell style={{ ...H_CELL, color: t.textWeak, width: '30%' }}>Name</TableHeaderCell>
-            <TableHeaderCell style={{ ...H_CELL, color: t.textWeak, width: '20%' }}>Type</TableHeaderCell>
-            <TableHeaderCell style={{ ...H_CELL, color: t.textWeak, width: '20%' }}>City</TableHeaderCell>
-            <TableHeaderCell style={{ ...H_CELL, color: t.textWeak, width: '20%' }}>Lifecycle Stage</TableHeaderCell>
-            {isFullscreen && <TableHeaderCell style={{ ...H_CELL, width: 80, color: t.textWeak }} />}
+            <TableHeaderCell style={{ ...H_CELL, color: t.textWeak, width: '22%' }}>Name</TableHeaderCell>
+            <TableHeaderCell style={{ ...H_CELL, color: t.textWeak, width: '18%' }}>Domain</TableHeaderCell>
+            <TableHeaderCell style={{ ...H_CELL, color: t.textWeak, width: '14%' }}>Type</TableHeaderCell>
+            <TableHeaderCell style={{ ...H_CELL, color: t.textWeak, width: '12%' }}>City</TableHeaderCell>
+            <TableHeaderCell style={{ ...H_CELL, color: t.textWeak, width: '12%' }}>Country</TableHeaderCell>
+            <TableHeaderCell style={{ ...H_CELL, color: t.textWeak, width: '14%' }}>Stage</TableHeaderCell>
+            {isFullscreen && <TableHeaderCell style={{ ...H_CELL, width: 50, color: t.textWeak }} />}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {localItems.length === 0 && !creating && (
+          {localItems.length === 0 && (
             <TableRow><TableCell colSpan={99} className={styles.empty}><Text>No companies found.</Text></TableCell></TableRow>
           )}
           {localItems.map((co: any) => (
@@ -148,12 +183,14 @@ export function CompaniesView({ items: initItems, callTool, toast, theme, cacheI
                   </Button>
                 </TableCell>
                 <TableCell style={{ ...D_CELL, fontWeight: 600 }}>{co.name}</TableCell>
+                <TableCell style={{ ...D_CELL, fontSize: 12 }}>{co.domain || '—'}</TableCell>
                 <TableCell style={D_CELL}><StatusPill status={co.type || ''} /></TableCell>
                 <TableCell style={D_CELL}>{co.city || '—'}</TableCell>
+                <TableCell style={D_CELL}>{co.country || '—'}</TableCell>
                 <TableCell style={D_CELL}>{co.lifecyclestage || '—'}</TableCell>
                 {isFullscreen && (
                   <TableCell style={D_CELL}>
-                    <Button appearance="subtle" icon={<EditRegular />} size="small" onClick={() => openEdit(co)} aria-label={`Edit ${co.name}`} title="Edit" />
+                    <Button appearance="subtle" icon={<EyeRegular />} size="small" onClick={() => openView(co)} aria-label={`View ${co.name}`} title="View" />
                   </TableCell>
                 )}
               </TableRow>
@@ -185,13 +222,42 @@ export function CompaniesView({ items: initItems, callTool, toast, theme, cacheI
         </TableBody>
       </Table>
       <RecordDialog
-        open={editingId !== null || creating}
-        title={creating ? 'New Company' : 'Edit Company'}
+        open={editingId !== null}
+        title="Edit Company"
         fields={fFields}
         onSave={handleSave}
         onCancel={cancel}
         saving={saving}
       />
+      <Dialog open={!!viewingCompany} onOpenChange={(_, data) => { if (!data.open) setViewingCompany(null); }}>
+        <DialogSurface style={{ maxWidth: '720px', width: '90vw', padding: '24px' }}>
+          <DialogBody>
+            <DialogTitle style={{ fontSize: '18px', fontWeight: 700, color: tokens.colorBrandForeground1 }}>
+              {viewingCompany?.name || 'Company'}
+            </DialogTitle>
+            <DialogContent style={{ paddingTop: '16px' }}>
+              {viewingCompany && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '10px 12px' }}>
+                    {companyViewFields.map(field => (
+                      <React.Fragment key={field.label}>
+                        <div style={{ color: t.textWeak, fontSize: 12, fontWeight: 600 }}>{field.label}</div>
+                        <div style={{ color: t.text, fontSize: 13, whiteSpace: field.label === 'Description' ? 'normal' : 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{field.value || '—'}</div>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+            <DialogActions style={{ paddingTop: '16px' }}>
+              <Button appearance="secondary" icon={<DismissRegular />} onClick={() => setViewingCompany(null)}>Close</Button>
+              {viewingCompany && (
+                <Button appearance="primary" icon={<EditRegular />} onClick={() => openEdit(viewingCompany)}>Edit</Button>
+              )}
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
       <HsFooter theme={theme} />
     </div>
   );

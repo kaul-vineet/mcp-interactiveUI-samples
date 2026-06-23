@@ -19,16 +19,44 @@
             "description": "Update an existing Company in HubSpot CRM by its record Id. Only fields provided will be updated. Fields: name, domain, type, lifecyclestage, city, phone, country, description."
         },
         {
-            "name": "hs__get_company_contacts",
-            "description": "Get contacts associated with a Company in HubSpot CRM. Required: company_id. Returns first name, last name, email, phone, lifecycle stage."
+            "name": "hs__get_associations",
+            "description": "Get records associated to an entity in HubSpot CRM. Required: entity_type (companies or contacts), entity_id, association_type (contacts, deals, tickets, or companies). Returns fields relevant to the target type."
         },
         {
-            "name": "hs__get_company_deals",
-            "description": "Get deals associated with a Company in HubSpot CRM. Required: company_id. Returns deal name, amount, stage, close date, pipeline."
+            "name": "hs__get_contacts",
+            "description": "Get contacts from HubSpot CRM (10 most recent). Pass contact_id to view one record; add action='edit' to open the edit form; action='create' to open a blank create form. Filters: firstname, lastname, email, jobtitle, city, company_name (FK \u2014 searches all associations), lifecyclestage (subscriber/lead/marketingqualifiedlead/salesqualifiedlead/opportunity/customer/evangelist/other)."
         },
         {
-            "name": "hs__get_company_tickets",
-            "description": "Get tickets associated with a Company in HubSpot CRM. Required: company_id. Returns subject, status, priority, category."
+            "name": "hs__create_contact",
+            "description": "Create a new Contact in HubSpot CRM. Requires: firstname, lastname, email. Optional: phone, jobtitle, lifecyclestage, city, company_name (associates to matching company)."
+        },
+        {
+            "name": "hs__update_contact",
+            "description": "Update an existing Contact in HubSpot CRM by its record Id. Only fields provided will be updated. Fields: firstname, lastname, email, phone, jobtitle, lifecyclestage, city."
+        },
+        {
+            "name": "hs__get_deals",
+            "description": "Get deals from HubSpot CRM (10 most recent). Pass deal_id to view one record; add action='edit' to open the edit form; action='create' to open a blank create form. Filters: dealname (text search), dealstage (stage ID or closedwon/closedlost), pipeline (default), dealtype (newbusiness/existingbusiness), company_name (FK \u2014 finds deals associated to that company)."
+        },
+        {
+            "name": "hs__create_deal",
+            "description": "Create a new Deal in HubSpot CRM. Required: dealname, dealstage, pipeline. Optional: amount, closedate (ISO date), dealtype (newbusiness/existingbusiness), description, company_name (associates to matching company), contact_name (associates to matching contact)."
+        },
+        {
+            "name": "hs__update_deal",
+            "description": "Update an existing Deal in HubSpot CRM by its record Id. Only fields provided will be updated. Fields: dealname, amount, pipeline, dealstage, closedate, dealtype, description."
+        },
+        {
+            "name": "hs__get_orders",
+            "description": "Get orders from HubSpot CRM (10 most recent). Pass order_id to view one record; add action='edit' to open the edit form; action='create' to open a blank create form. Filters: hs_order_name (text search), hs_fulfillment_status, hs_payment_status, hs_currency_code, company_name (FK), contact_name (FK), deal_name (FK)."
+        },
+        {
+            "name": "hs__create_order",
+            "description": "Create a new Order in HubSpot CRM. Required: hs_order_name. Optional: hs_total_price, hs_currency_code, hs_fulfillment_status, hs_payment_status, hs_closed_date (ISO date), hs_source_store, company_name (associates to company), contact_name (associates to contact), deal_name (associates to deal)."
+        },
+        {
+            "name": "hs__update_order",
+            "description": "Update an existing Order in HubSpot CRM by its record Id. Only fields provided will be updated. Fields: hs_order_name, hs_total_price, hs_currency_code, hs_fulfillment_status, hs_payment_status, hs_closed_date, hs_source_store."
         }
     ],
     "runtimes": [
@@ -47,9 +75,16 @@
                 "hs__get_companies",
                 "hs__create_company",
                 "hs__update_company",
-                "hs__get_company_contacts",
-                "hs__get_company_deals",
-                "hs__get_company_tickets"
+                "hs__get_associations",
+                "hs__get_contacts",
+                "hs__create_contact",
+                "hs__update_contact",
+                "hs__get_deals",
+                "hs__create_deal",
+                "hs__update_deal",
+                "hs__get_orders",
+                "hs__create_order",
+                "hs__update_order"
             ]
         }
     ]

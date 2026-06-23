@@ -9,7 +9,7 @@ import { HsFooter } from '../components/HsFooter';
 // ── FkHint — conditional footer for FK fields ──────────────────────────────
 function FkHint({ fields, theme }: { fields: any[]; theme: 'light' | 'dark' }) {
   const t = hs(theme);
-  const hasFk = fields.some(f => f.label?.includes('🔗'));
+  const hasFk = fields.some(f => f.fk);
   if (!hasFk) return null;
   return (
     <div style={{
@@ -46,7 +46,8 @@ export function FormView({ data, callTool, toast, theme }: {
   const getToolName = (action: 'create' | 'update' | 'get') => {
     if (action === 'create') return `hs__create_${entity}`;
     if (action === 'update') return `hs__update_${entity}`;
-    return `hs__get_${entity === 'company' ? 'companies' : 'contacts'}`;
+    const plural: Record<string, string> = { company: 'companies', contact: 'contacts', deal: 'deals', order: 'orders', product: 'products' };
+    return `hs__get_${plural[entity] || 'companies'}`;
   };
 
   const handleSave = async () => {
@@ -58,20 +59,22 @@ export function FormView({ data, callTool, toast, theme }: {
       } else {
         result = await callTool(getToolName('create'), form);
       }
-      // FK alert pattern — persistent toast, stay on form
-      if (result && result.type === 'alert') {
+      // FK alert or API error — persistent toast, stay on form
+      if (result && (result.type === 'alert' || result.type === 'error')) {
         toast(result.message || 'Cannot complete — please correct and retry.', { intent: 'error', duration: 0 });
         setSaving(false);
         return;
       }
-      toast(`${entity === 'company' ? 'Company' : 'Contact'} ${isEdit ? 'updated' : 'created'}`);
+      toast(`${entityLabel} ${isEdit ? 'updated' : 'created'}`);
+      // Redirect to list view (refreshed)
+      callTool(getToolName('get'), { refresh: true });
     } catch (e: any) { toast(e.message || 'Failed', { intent: 'error' }); }
     finally { setSaving(false); }
   };
 
   const handleBack = () => { callTool(getToolName('get'), {}); };
 
-  const entityLabel = entity === 'company' ? 'Company' : 'Contact';
+  const entityLabel = entity.charAt(0).toUpperCase() + entity.slice(1);
 
   return (
     <div className={styles.card}>
@@ -100,7 +103,7 @@ export function FormView({ data, callTool, toast, theme }: {
           <Button appearance="secondary" onClick={handleBack} disabled={saving}>Cancel</Button>
           <Button appearance="primary" onClick={handleSave} disabled={saving}
             icon={isEdit ? <SaveRegular /> : <AddRegular />}>
-            {saving ? 'Saving…' : isEdit ? 'Save' : 'Create'}
+            {saving ? 'Saving…' : 'Save'}
           </Button>
         </div>
       </div>

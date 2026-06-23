@@ -151,11 +151,17 @@
             }
         },
         {
-            "name": "hs__get_company_contacts",
-            "description": "Get contacts associated with a Company in HubSpot CRM. Required: company_id. Returns first name, last name, email, phone, lifecycle stage.",
+            "name": "hs__get_associations",
+            "description": "Get records associated to an entity in HubSpot CRM. Required: entity_type (companies or contacts), entity_id, association_type (contacts, deals, tickets, or companies). Returns fields relevant to the target type.",
             "inputSchema": {
                 "properties": {
-                    "company_id": {
+                    "entity_type": {
+                        "type": "string"
+                    },
+                    "entity_id": {
+                        "type": "string"
+                    },
+                    "association_type": {
                         "type": "string"
                     },
                     "refresh": {
@@ -164,11 +170,13 @@
                     }
                 },
                 "required": [
-                    "company_id"
+                    "entity_type",
+                    "entity_id",
+                    "association_type"
                 ],
                 "type": "object"
             },
-            "title": "Get company contacts",
+            "title": "Get associations",
             "_meta": {
                 "ui": {
                     "resourceUri": "ui://widget/hubspot.html"
@@ -176,11 +184,44 @@
             }
         },
         {
-            "name": "hs__get_company_deals",
-            "description": "Get deals associated with a Company in HubSpot CRM. Required: company_id. Returns deal name, amount, stage, close date, pipeline.",
+            "name": "hs__get_contacts",
+            "description": "Get contacts from HubSpot CRM (10 most recent). Pass contact_id to view one record; add action='edit' to open the edit form; action='create' to open a blank create form. Filters: firstname, lastname, email, jobtitle, city, company_name (FK \u2014 searches all associations), lifecyclestage (subscriber/lead/marketingqualifiedlead/salesqualifiedlead/opportunity/customer/evangelist/other).",
             "inputSchema": {
                 "properties": {
-                    "company_id": {
+                    "contact_id": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "firstname": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "lastname": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "email": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "company_name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "lifecyclestage": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "jobtitle": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "city": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "action": {
+                        "default": "",
                         "type": "string"
                     },
                     "refresh": {
@@ -188,12 +229,10 @@
                         "type": "boolean"
                     }
                 },
-                "required": [
-                    "company_id"
-                ],
-                "type": "object"
+                "type": "object",
+                "required": []
             },
-            "title": "Get company deals",
+            "title": "Get contacts",
             "_meta": {
                 "ui": {
                     "resourceUri": "ui://widget/hubspot.html"
@@ -201,11 +240,134 @@
             }
         },
         {
-            "name": "hs__get_company_tickets",
-            "description": "Get tickets associated with a Company in HubSpot CRM. Required: company_id. Returns subject, status, priority, category.",
+            "name": "hs__create_contact",
+            "description": "Create a new Contact in HubSpot CRM. Requires: firstname, lastname, email. Optional: phone, jobtitle, lifecyclestage, city, company_name (associates to matching company).",
             "inputSchema": {
                 "properties": {
-                    "company_id": {
+                    "firstname": {
+                        "type": "string"
+                    },
+                    "lastname": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "phone": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "jobtitle": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "lifecyclestage": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "city": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "company_name": {
+                        "default": "",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "firstname",
+                    "lastname",
+                    "email"
+                ],
+                "type": "object"
+            },
+            "title": "Create contact",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__update_contact",
+            "description": "Update an existing Contact in HubSpot CRM by its record Id. Only fields provided will be updated. Fields: firstname, lastname, email, phone, jobtitle, lifecyclestage, city.",
+            "inputSchema": {
+                "properties": {
+                    "contact_id": {
+                        "type": "string"
+                    },
+                    "firstname": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "lastname": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "email": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "phone": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "jobtitle": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "lifecyclestage": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "city": {
+                        "default": "",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "contact_id"
+                ],
+                "type": "object"
+            },
+            "title": "Update contact",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__get_deals",
+            "description": "Get deals from HubSpot CRM (10 most recent). Pass deal_id to view one record; add action='edit' to open the edit form; action='create' to open a blank create form. Filters: dealname (text search), dealstage (stage ID or closedwon/closedlost), pipeline (default), dealtype (newbusiness/existingbusiness), company_name (FK \u2014 finds deals associated to that company).",
+            "inputSchema": {
+                "properties": {
+                    "deal_id": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "dealname": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "dealstage": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "pipeline": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "dealtype": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "company_name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "action": {
+                        "default": "",
                         "type": "string"
                     },
                     "refresh": {
@@ -213,12 +375,270 @@
                         "type": "boolean"
                     }
                 },
-                "required": [
-                    "company_id"
-                ],
-                "type": "object"
+                "type": "object",
+                "required": []
             },
-            "title": "Get company tickets",
+            "title": "Get deals",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__create_deal",
+            "description": "Create a new Deal in HubSpot CRM. Required: dealname, dealstage, pipeline. Optional: amount, closedate (ISO date), dealtype (newbusiness/existingbusiness), description, company_name (associates to matching company), contact_name (associates to matching contact).",
+            "inputSchema": {
+                "properties": {
+                    "dealname": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "amount": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "pipeline": {
+                        "default": "default",
+                        "type": "string"
+                    },
+                    "dealstage": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "closedate": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "dealtype": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "description": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "company_name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "contact_name": {
+                        "default": "",
+                        "type": "string"
+                    }
+                },
+                "type": "object",
+                "required": []
+            },
+            "title": "Create deal",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__update_deal",
+            "description": "Update an existing Deal in HubSpot CRM by its record Id. Only fields provided will be updated. Fields: dealname, amount, pipeline, dealstage, closedate, dealtype, description.",
+            "inputSchema": {
+                "properties": {
+                    "deal_id": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "dealname": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "amount": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "pipeline": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "dealstage": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "closedate": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "dealtype": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "description": {
+                        "default": "",
+                        "type": "string"
+                    }
+                },
+                "type": "object",
+                "required": []
+            },
+            "title": "Update deal",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__get_orders",
+            "description": "Get orders from HubSpot CRM (10 most recent). Pass order_id to view one record; add action='edit' to open the edit form; action='create' to open a blank create form. Filters: hs_order_name (text search), hs_fulfillment_status, hs_payment_status, hs_currency_code, company_name (FK), contact_name (FK), deal_name (FK).",
+            "inputSchema": {
+                "properties": {
+                    "order_id": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_order_name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_fulfillment_status": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_payment_status": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_currency_code": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "company_name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "contact_name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "deal_name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "action": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "refresh": {
+                        "default": false,
+                        "type": "boolean"
+                    }
+                },
+                "type": "object",
+                "required": []
+            },
+            "title": "Get orders",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__create_order",
+            "description": "Create a new Order in HubSpot CRM. Required: hs_order_name. Optional: hs_total_price, hs_currency_code, hs_fulfillment_status, hs_payment_status, hs_closed_date (ISO date), hs_source_store, company_name (associates to company), contact_name (associates to contact), deal_name (associates to deal).",
+            "inputSchema": {
+                "properties": {
+                    "hs_order_name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_total_price": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_currency_code": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_fulfillment_status": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_payment_status": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_closed_date": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_source_store": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "company_name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "contact_name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "deal_name": {
+                        "default": "",
+                        "type": "string"
+                    }
+                },
+                "type": "object",
+                "required": []
+            },
+            "title": "Create order",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__update_order",
+            "description": "Update an existing Order in HubSpot CRM by its record Id. Only fields provided will be updated. Fields: hs_order_name, hs_total_price, hs_currency_code, hs_fulfillment_status, hs_payment_status, hs_closed_date, hs_source_store.",
+            "inputSchema": {
+                "properties": {
+                    "order_id": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_order_name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_total_price": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_currency_code": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_fulfillment_status": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_payment_status": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_closed_date": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_source_store": {
+                        "default": "",
+                        "type": "string"
+                    }
+                },
+                "type": "object",
+                "required": []
+            },
+            "title": "Update order",
             "_meta": {
                 "ui": {
                     "resourceUri": "ui://widget/hubspot.html"

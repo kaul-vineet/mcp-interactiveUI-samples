@@ -4,11 +4,12 @@ import { AddRegular, SaveRegular } from '@fluentui/react-icons';
 import { FormSelect } from './FormSelect';
 
 // ── RecordDialog — inline edit/create form ─────────────────────────────────
-export function RecordDialog({ open, title, fields, onSave, onCancel, saving }: {
+export function RecordDialog({ open, title, fields, onSave, onCancel, saving, mode }: {
   open: boolean; title: string;
   fields: { label: string; key: string; value: string; onChange: (v: string) => void; type?: 'select'; options?: string[]; inputType?: string }[];
-  onSave: () => void; onCancel: () => void; saving: boolean;
+  onSave: () => void; onCancel: () => void; saving: boolean; mode?: 'edit' | 'create';
 }) {
+  const isEdit = mode ? mode === 'edit' : title.includes('Edit');
   return (
     <Dialog open={open} onOpenChange={(_, data) => { if (!data.open) onCancel(); }}>
       <DialogSurface style={{ maxWidth: '480px', padding: '24px' }}>
@@ -30,8 +31,8 @@ export function RecordDialog({ open, title, fields, onSave, onCancel, saving }: 
           <DialogActions style={{ paddingTop: '16px' }}>
             <Button appearance="secondary" onClick={onCancel} disabled={saving}>Cancel</Button>
             <Button appearance="primary" onClick={onSave} disabled={saving}
-              icon={title.includes('Edit') ? <SaveRegular /> : <AddRegular />}>
-              {saving ? 'Saving…' : title.includes('Edit') ? 'Save' : 'Create'}
+              icon={isEdit ? <SaveRegular /> : undefined}>
+              {saving ? 'Saving…' : isEdit ? 'Save' : 'Create'}
             </Button>
           </DialogActions>
         </DialogBody>
