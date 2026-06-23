@@ -1,4 +1,4 @@
-"""HubSpot CRM tool handlers — Companies entity (SF pattern)."""
+"""HubSpot CRM tool handlers — Companies, Contacts, Deals, Orders, Products."""
 
 from __future__ import annotations
 
@@ -13,7 +13,6 @@ from mcp.types import TextContent
 from .hubspot_client import HubSpotAPIError, HubSpotAuthError, get_client
 
 log = structlog.get_logger("hs")
-WIDGET_URI = "ui://widget/hubspot.html"
 
 
 # ── Entity Schemas ────────────────────────────────────────────────────────────
@@ -2001,6 +2000,522 @@ async def hs__update_product(
     )
 
 
+# ── Activities tools ──────────────────────────────────────────────────────────
+
+_ACTIVITY_SCHEMAS: dict[str, dict] = {
+    "note": {
+        "objectType": "notes",
+        "columns": [
+            {"apiName": "hs_note_body", "label": "Body"},
+            {"apiName": "hs_timestamp", "label": "Date"},
+        ],
+        "hiddenColumns": [],
+        "filterFields": {},
+        "formFields": [
+            {"name": "hs_note_body", "label": "Note Body", "multiline": True, "required": True},
+        ],
+    },
+    "call": {
+        "objectType": "calls",
+        "columns": [
+            {"apiName": "hs_call_body", "label": "Notes"},
+            {"apiName": "hs_call_direction", "label": "Direction"},
+            {"apiName": "hs_call_status", "label": "Status"},
+            {"apiName": "hs_timestamp", "label": "Date"},
+        ],
+        "hiddenColumns": [
+            {"apiName": "hs_call_duration_milliseconds", "label": "Duration (ms)"},
+        ],
+        "filterFields": {
+            "hs_call_direction": {"operator": "EQ", "property": "hs_call_direction"},
+            "hs_call_status": {"operator": "EQ", "property": "hs_call_status"},
+        },
+        "formFields": [
+            {"name": "hs_call_body", "label": "Call Notes", "multiline": True},
+            {"name": "hs_call_direction", "label": "Direction", "required": True, "picklist": ["INBOUND", "OUTBOUND"]},
+            {"name": "hs_call_status", "label": "Outcome", "picklist": ["COMPLETED", "BUSY", "NO_ANSWER", "FAILED", "CONNECTING", "CALLING_CRM_USER"]},
+            {"name": "hs_call_duration_milliseconds", "label": "Duration (ms)"},
+        ],
+    },
+    "task": {
+        "objectType": "tasks",
+        "columns": [
+            {"apiName": "hs_task_subject", "label": "Subject"},
+            {"apiName": "hs_task_status", "label": "Status"},
+            {"apiName": "hs_task_priority", "label": "Priority"},
+            {"apiName": "hs_timestamp", "label": "Date"},
+        ],
+        "hiddenColumns": [
+            {"apiName": "hs_task_body", "label": "Body"},
+        ],
+        "filterFields": {
+            "hs_task_status": {"operator": "EQ", "property": "hs_task_status"},
+            "hs_task_priority": {"operator": "EQ", "property": "hs_task_priority"},
+            "hs_task_subject": {"operator": "CONTAINS_TOKEN", "property": "hs_task_subject"},
+        },
+        "formFields": [
+            {"name": "hs_task_subject", "label": "Subject", "required": True},
+            {"name": "hs_task_body", "label": "Details", "multiline": True},
+            {"name": "hs_task_status", "label": "Status", "picklist": ["NOT_STARTED", "IN_PROGRESS", "WAITING", "COMPLETED", "DEFERRED"]},
+            {"name": "hs_task_priority", "label": "Priority", "picklist": ["HIGH", "MEDIUM", "LOW", "NONE"]},
+        ],
+    },
+    "meeting": {
+        "objectType": "meetings",
+        "columns": [
+            {"apiName": "hs_meeting_title", "label": "Title"},
+            {"apiName": "hs_meeting_outcome", "label": "Outcome"},
+            {"apiName": "hs_meeting_start_time", "label": "Start"},
+            {"apiName": "hs_meeting_end_time", "label": "End"},
+        ],
+        "hiddenColumns": [
+            {"apiName": "hs_meeting_body", "label": "Description"},
+        ],
+        "filterFields": {
+            "hs_meeting_outcome": {"operator": "EQ", "property": "hs_meeting_outcome"},
+        },
+        "formFields": [
+            {"name": "hs_meeting_title", "label": "Title", "required": True},
+            {"name": "hs_meeting_body", "label": "Description", "multiline": True},
+            {"name": "hs_meeting_start_time", "label": "Start Time (ISO)"},
+            {"name": "hs_meeting_end_time", "label": "End Time (ISO)"},
+            {"name": "hs_meeting_outcome", "label": "Outcome", "picklist": ["SCHEDULED", "COMPLETED", "RESCHEDULED", "NO_SHOW", "CANCELLED"]},
+        ],
+    },
+    "email": {
+        "objectType": "emails",
+        "columns": [
+            {"apiName": "hs_email_subject", "label": "Subject"},
+            {"apiName": "hs_email_status", "label": "Status"},
+            {"apiName": "hs_email_direction", "label": "Direction"},
+            {"apiName": "hs_timestamp", "label": "Date"},
+        ],
+        "hiddenColumns": [
+            {"apiName": "hs_email_text", "label": "Body"},
+        ],
+        "filterFields": {
+            "hs_email_status": {"operator": "EQ", "property": "hs_email_status"},
+            "hs_email_direction": {"operator": "EQ", "property": "hs_email_direction"},
+        },
+        "formFields": [
+            {"name": "hs_email_subject", "label": "Subject", "required": True},
+            {"name": "hs_email_text", "label": "Body", "multiline": True},
+            {"name": "hs_email_direction", "label": "Direction", "picklist": ["EMAIL", "INCOMING_EMAIL", "FORWARDED_EMAIL"]},
+            {"name": "hs_email_status", "label": "Status", "picklist": ["SEND", "SENDING", "SENT", "FAILED", "BOUNCED"]},
+        ],
+    },
+}
+
+_ACTIVITY_ASSOC_IDS: dict[tuple[str, str], int] = {
+    ("notes", "companies"): 190,    ("notes", "contacts"): 202,    ("notes", "deals"): 214,
+    ("calls", "companies"): 182,    ("calls", "contacts"): 194,    ("calls", "deals"): 206,
+    ("tasks", "companies"): 192,    ("tasks", "contacts"): 204,    ("tasks", "deals"): 216,
+    ("meetings", "companies"): 188, ("meetings", "contacts"): 200, ("meetings", "deals"): 212,
+    ("emails", "companies"): 186,   ("emails", "contacts"): 198,   ("emails", "deals"): 210,
+}
+
+_VALID_ACTIVITY_TYPES = {"note", "call", "task", "meeting", "email"}
+_VALID_ENTITY_TYPES = {"company", "contact", "deal"}
+
+_ENTITY_RESOLVER: dict[str, tuple] = {
+    "company": ("companies", _resolve_company, _company_not_found_alert),
+    "contact": ("contacts", _resolve_contact, _contact_not_found_alert),
+    "deal": ("deals", _resolve_deal, _deal_not_found_alert),
+}
+
+
+def _activity_list_props(activity_type: str) -> list[str]:
+    """Get property names for list view of an activity type."""
+    cfg = _ACTIVITY_SCHEMAS[activity_type]
+    return [c["apiName"] for c in cfg["columns"] + cfg.get("hiddenColumns", [])]
+
+
+def _activity_all_props(activity_type: str) -> list[str]:
+    """Get all property names for an activity type."""
+    cfg = _ACTIVITY_SCHEMAS[activity_type]
+    return [c["apiName"] for c in cfg["columns"] + cfg.get("hiddenColumns", [])]
+
+
+async def hs__get_activities(
+    activity_type: str = "",
+    activity_id: str = "",
+    entity_type: str = "",
+    entity_name: str = "",
+    action: str = "",
+    refresh: bool = False,
+    # Call fields
+    hs_call_direction: str = "",
+    hs_call_status: str = "",
+    # Task fields
+    hs_task_subject: str = "",
+    hs_task_status: str = "",
+    hs_task_priority: str = "",
+    # Meeting fields
+    hs_meeting_outcome: str = "",
+    # Email fields
+    hs_email_status: str = "",
+    hs_email_direction: str = "",
+) -> types.CallToolResult:
+    """Get activities (note/call/task/meeting/email). Requires activity_type.
+    Branches: action=create→form, id+edit→form, id→single, entity_name→filtered, bare→top 10."""
+    log.info("hs__get_activities", activity_type=activity_type, activity_id=activity_id,
+             entity_type=entity_type, entity_name=entity_name, action=action, refresh=refresh)
+
+    # Collect all filter kwargs into a dict
+    kwargs: dict[str, str] = {}
+    for k, v in [("hs_call_direction", hs_call_direction), ("hs_call_status", hs_call_status),
+                 ("hs_task_subject", hs_task_subject), ("hs_task_status", hs_task_status),
+                 ("hs_task_priority", hs_task_priority), ("hs_meeting_outcome", hs_meeting_outcome),
+                 ("hs_email_status", hs_email_status), ("hs_email_direction", hs_email_direction)]:
+        if v:
+            kwargs[k] = v
+
+    if not activity_type or activity_type not in _VALID_ACTIVITY_TYPES:
+        return _error_result(f"activity_type is required. Must be one of: {sorted(_VALID_ACTIVITY_TYPES)}.")
+
+    cfg = _ACTIVITY_SCHEMAS[activity_type]
+    obj_type = cfg["objectType"]
+
+    # Branch 1a — action="create" → form (entity_type + entity_name for FK)
+    if action == "create":
+        prefill = {field["name"]: "" for field in cfg["formFields"]}
+        # Pass through any kwargs that match form field names
+        for field in cfg["formFields"]:
+            if field["name"] in kwargs and kwargs[field["name"]]:
+                prefill[field["name"]] = kwargs[field["name"]]
+        return types.CallToolResult(
+            content=[TextContent(type="text", text=f"Opening create form for a new {activity_type}.")],
+            structuredContent={
+                "type": "activity_form", "activity_type": activity_type,
+                "entity_type": entity_type or "", "entity_name": entity_name or "",
+                "mode": "create", "recordId": "", "prefill": prefill,
+                "_schema": cfg,
+            },
+        )
+
+    # Branch 1b — id + action="edit" → prefilled edit form
+    if activity_id and action in ("edit", "change"):
+        try:
+            client = get_client()
+            record = await client.get_object(obj_type, activity_id, _activity_all_props(activity_type))
+        except HubSpotAuthError as exc:
+            return _error_result(f"HubSpot authentication failed: {exc}")
+        except HubSpotAPIError as exc:
+            return _error_result(f"{activity_type} {activity_id} not found: {exc}")
+        except Exception as exc:
+            return _error_result(f"Error looking up {activity_type}: {exc}")
+
+        prefill = {field["name"]: record.get(field["name"], "") or "" for field in cfg["formFields"]}
+        return types.CallToolResult(
+            content=[TextContent(type="text", text=f"Opening edit form for {activity_type} {activity_id}.")],
+            structuredContent={
+                "type": "activity_form", "activity_type": activity_type,
+                "entity_type": "", "entity_name": "",
+                "mode": "edit", "recordId": activity_id, "prefill": prefill,
+                "_schema": cfg,
+            },
+        )
+
+    # Branch 2 — id alone → single record view
+    if activity_id:
+        try:
+            client = get_client()
+            record = await client.get_object(obj_type, activity_id, _activity_all_props(activity_type))
+        except HubSpotAuthError as exc:
+            return _error_result(f"HubSpot authentication failed: {exc}")
+        except HubSpotAPIError as exc:
+            return _error_result(f"{activity_type} {activity_id} not found: {exc}")
+        except Exception as exc:
+            return _error_result(f"Error fetching {activity_type}: {exc}")
+
+        items = [record]
+        return types.CallToolResult(
+            content=[TextContent(type="text", text=f"1 {activity_type}(s).")],
+            structuredContent={
+                "type": "activities", "activity_type": activity_type,
+                "total": 1, "items": items,
+                "_schema": cfg, "_cache": {"hit": False, "cached_at": _now_iso()},
+            },
+        )
+
+    # Branch 3 — entity_name filter (resolve FK → get associations → batch read)
+    if entity_name and entity_type:
+        if entity_type not in _VALID_ENTITY_TYPES:
+            return _error_result(f"entity_type must be one of: {sorted(_VALID_ENTITY_TYPES)}.")
+        plural, resolver, alert_fn = _ENTITY_RESOLVER[entity_type]
+        try:
+            client = get_client()
+            entity_id, suggestions = await resolver(client, entity_name)
+        except Exception as exc:
+            return _error_result(f"Error resolving {entity_type}: {exc}")
+        if not entity_id:
+            return alert_fn(entity_name, suggestions)
+
+        # Get associated activity IDs
+        try:
+            assoc_ids = await client.get_associated_ids(plural, entity_id, obj_type)
+            if assoc_ids:
+                records = await client.batch_read(obj_type, assoc_ids[:10], _activity_list_props(activity_type))
+            else:
+                records = []
+        except Exception as exc:
+            return _error_result(f"Error fetching {activity_type}s for {entity_type}: {exc}")
+
+        items = [{"id": r.get("id", ""), **r} for r in records]
+        return types.CallToolResult(
+            content=[TextContent(type="text", text=f"{len(items)} {activity_type}(s) for {entity_name}.")],
+            structuredContent={
+                "type": "activities", "activity_type": activity_type,
+                "total": len(items), "items": items,
+                "_schema": cfg, "_cache": {"hit": False, "cached_at": _now_iso()},
+            },
+        )
+
+    # Branch 4 — filter-based or bare search
+    filter_params = {k: v for k, v in kwargs.items() if v and k in cfg.get("filterFields", {})}
+    filter_defs = cfg.get("filterFields", {})
+    filters = []
+    for param_name, value in filter_params.items():
+        fdef = filter_defs.get(param_name)
+        if fdef:
+            filters.append({"propertyName": fdef["property"], "operator": fdef["operator"], "value": value})
+    filter_groups = [{"filters": filters}] if filters else None
+
+    try:
+        client = get_client()
+        props = _activity_list_props(activity_type)
+        items = await client.search_objects(obj_type, props, filter_groups=filter_groups, limit=10)
+    except HubSpotAuthError as exc:
+        return _error_result(f"HubSpot authentication failed: {exc}")
+    except HubSpotAPIError as exc:
+        return _error_result(f"Failed to fetch {activity_type}s: {exc}")
+    except Exception as exc:
+        return _error_result(f"Error fetching {activity_type}s: {exc}")
+
+    return types.CallToolResult(
+        content=[TextContent(type="text", text=f"{len(items)} {activity_type}(s).")],
+        structuredContent={
+            "type": "activities", "activity_type": activity_type,
+            "total": len(items), "items": items,
+            "_schema": cfg, "_cache": {"hit": False, "cached_at": _now_iso()},
+        },
+    )
+
+
+async def hs__create_activity(
+    activity_type: str,
+    entity_type: str = "",
+    entity_name: str = "",
+    # Note fields
+    hs_note_body: str = "",
+    # Call fields
+    hs_call_body: str = "",
+    hs_call_direction: str = "",
+    hs_call_status: str = "",
+    hs_call_duration_milliseconds: str = "",
+    # Task fields
+    hs_task_subject: str = "",
+    hs_task_body: str = "",
+    hs_task_status: str = "",
+    hs_task_priority: str = "",
+    # Meeting fields
+    hs_meeting_title: str = "",
+    hs_meeting_body: str = "",
+    hs_meeting_start_time: str = "",
+    hs_meeting_end_time: str = "",
+    hs_meeting_outcome: str = "",
+    # Email fields
+    hs_email_subject: str = "",
+    hs_email_text: str = "",
+    hs_email_direction: str = "",
+    hs_email_status: str = "",
+) -> types.CallToolResult:
+    """Create an activity (note/call/task/meeting/email) and associate it with an entity."""
+    log.info("hs__create_activity", activity_type=activity_type,
+             entity_type=entity_type, entity_name=entity_name)
+
+    if not activity_type or activity_type not in _VALID_ACTIVITY_TYPES:
+        return _error_result(f"activity_type is required. Must be one of: {sorted(_VALID_ACTIVITY_TYPES)}.")
+
+    # Collect all field values into kwargs dict
+    kwargs: dict[str, str] = {}
+    for k, v in [("hs_note_body", hs_note_body), ("hs_call_body", hs_call_body),
+                 ("hs_call_direction", hs_call_direction), ("hs_call_status", hs_call_status),
+                 ("hs_call_duration_milliseconds", hs_call_duration_milliseconds),
+                 ("hs_task_subject", hs_task_subject), ("hs_task_body", hs_task_body),
+                 ("hs_task_status", hs_task_status), ("hs_task_priority", hs_task_priority),
+                 ("hs_meeting_title", hs_meeting_title), ("hs_meeting_body", hs_meeting_body),
+                 ("hs_meeting_start_time", hs_meeting_start_time), ("hs_meeting_end_time", hs_meeting_end_time),
+                 ("hs_meeting_outcome", hs_meeting_outcome), ("hs_email_subject", hs_email_subject),
+                 ("hs_email_text", hs_email_text), ("hs_email_direction", hs_email_direction),
+                 ("hs_email_status", hs_email_status)]:
+        if v:
+            kwargs[k] = v
+
+    cfg = _ACTIVITY_SCHEMAS[activity_type]
+    obj_type = cfg["objectType"]
+
+    # Build properties from kwargs matching form fields
+    props: dict[str, Any] = {}
+    for field in cfg["formFields"]:
+        val = kwargs.get(field["name"], "")
+        if val:
+            props[field["name"]] = val
+
+    # Ensure required fields
+    required_fields = [f["name"] for f in cfg["formFields"] if f.get("required")]
+    for rf in required_fields:
+        if not props.get(rf):
+            return _error_result(f"'{rf}' is required for {activity_type}.")
+
+    # Auto-set timestamp
+    props["hs_timestamp"] = _now_iso()
+
+    # Resolve FK entity for association
+    associations: list[dict] = []
+    if entity_name and entity_type:
+        if entity_type not in _VALID_ENTITY_TYPES:
+            return _error_result(f"entity_type must be one of: {sorted(_VALID_ENTITY_TYPES)}.")
+        plural, resolver, alert_fn = _ENTITY_RESOLVER[entity_type]
+        try:
+            client = get_client()
+            entity_id, suggestions = await resolver(client, entity_name)
+        except Exception as exc:
+            return _error_result(f"Error resolving {entity_type}: {exc}")
+        if not entity_id:
+            return alert_fn(entity_name, suggestions)
+
+        assoc_type_id = _ACTIVITY_ASSOC_IDS.get((obj_type, plural))
+        if assoc_type_id:
+            associations.append({
+                "to": {"id": entity_id},
+                "types": [{"associationCategory": "HUBSPOT_DEFINED", "associationTypeId": assoc_type_id}],
+            })
+
+    # Create the activity
+    try:
+        client = get_client()
+        body: dict[str, Any] = {"properties": props}
+        if associations:
+            body["associations"] = associations
+        # Use raw _request since create_object doesn't support associations
+        resp = await client._request("POST", f"/crm/v3/objects/{obj_type}", json_body=body)
+        client._raise_for_error(resp, f"create {obj_type}")
+        new_id = resp.json()["id"]
+    except HubSpotAuthError as exc:
+        return _error_result(f"HubSpot authentication failed: {exc}")
+    except HubSpotAPIError as exc:
+        return _error_result(f"Failed to create {activity_type}: {exc}")
+    except Exception as exc:
+        return _error_result(f"Unexpected error creating {activity_type}: {exc}")
+
+    # Refresh list
+    try:
+        items = await client.search_objects(obj_type, _activity_list_props(activity_type), limit=10)
+    except Exception:
+        items = []
+
+    return types.CallToolResult(
+        content=[TextContent(type="text", text=f"{activity_type.title()} created (Id: {new_id}).")],
+        structuredContent={
+            "type": "activities", "activity_type": activity_type,
+            "total": len(items), "items": items,
+            "_schema": cfg, "_createdId": new_id,
+            "_cache": {"hit": False, "cached_at": _now_iso()},
+        },
+    )
+
+
+async def hs__update_activity(
+    activity_type: str,
+    activity_id: str,
+    # Note fields
+    hs_note_body: str = "",
+    # Call fields
+    hs_call_body: str = "",
+    hs_call_direction: str = "",
+    hs_call_status: str = "",
+    hs_call_duration_milliseconds: str = "",
+    # Task fields
+    hs_task_subject: str = "",
+    hs_task_body: str = "",
+    hs_task_status: str = "",
+    hs_task_priority: str = "",
+    # Meeting fields
+    hs_meeting_title: str = "",
+    hs_meeting_body: str = "",
+    hs_meeting_start_time: str = "",
+    hs_meeting_end_time: str = "",
+    hs_meeting_outcome: str = "",
+    # Email fields
+    hs_email_subject: str = "",
+    hs_email_text: str = "",
+    hs_email_direction: str = "",
+    hs_email_status: str = "",
+) -> types.CallToolResult:
+    """Update an existing activity by id. Only provided fields are updated."""
+    log.info("hs__update_activity", activity_type=activity_type, activity_id=activity_id)
+
+    if not activity_type or activity_type not in _VALID_ACTIVITY_TYPES:
+        return _error_result(f"activity_type is required. Must be one of: {sorted(_VALID_ACTIVITY_TYPES)}.")
+    if not activity_id:
+        return _error_result("activity_id is required.")
+
+    cfg = _ACTIVITY_SCHEMAS[activity_type]
+    obj_type = cfg["objectType"]
+
+    # Collect all field values into kwargs dict
+    kwargs: dict[str, str] = {}
+    for k, v in [("hs_note_body", hs_note_body), ("hs_call_body", hs_call_body),
+                 ("hs_call_direction", hs_call_direction), ("hs_call_status", hs_call_status),
+                 ("hs_call_duration_milliseconds", hs_call_duration_milliseconds),
+                 ("hs_task_subject", hs_task_subject), ("hs_task_body", hs_task_body),
+                 ("hs_task_status", hs_task_status), ("hs_task_priority", hs_task_priority),
+                 ("hs_meeting_title", hs_meeting_title), ("hs_meeting_body", hs_meeting_body),
+                 ("hs_meeting_start_time", hs_meeting_start_time), ("hs_meeting_end_time", hs_meeting_end_time),
+                 ("hs_meeting_outcome", hs_meeting_outcome), ("hs_email_subject", hs_email_subject),
+                 ("hs_email_text", hs_email_text), ("hs_email_direction", hs_email_direction),
+                 ("hs_email_status", hs_email_status)]:
+        if v:
+            kwargs[k] = v
+
+    # Build properties from kwargs matching form fields
+    props: dict[str, Any] = {}
+    valid_fields = {f["name"] for f in cfg["formFields"]}
+    for k, v in kwargs.items():
+        if k in valid_fields and v:
+            props[k] = v
+
+    if not props:
+        return _error_result("No fields provided to update.")
+
+    try:
+        client = get_client()
+        await client.update_object(obj_type, activity_id, props)
+    except HubSpotAuthError as exc:
+        return _error_result(f"HubSpot authentication failed: {exc}")
+    except HubSpotAPIError as exc:
+        return _error_result(f"Failed to update {activity_type}: {exc}")
+    except Exception as exc:
+        return _error_result(f"Error updating {activity_type}: {exc}")
+
+    # Refresh list
+    try:
+        items = await client.search_objects(obj_type, _activity_list_props(activity_type), limit=10)
+    except Exception:
+        items = []
+
+    return types.CallToolResult(
+        content=[TextContent(type="text", text=f"{activity_type.title()} {activity_id} updated.")],
+        structuredContent={
+            "type": "activities", "activity_type": activity_type,
+            "total": len(items), "items": items,
+            "_schema": cfg, "_updatedId": activity_id,
+            "_cache": {"hit": False, "cached_at": _now_iso()},
+        },
+    )
+
+
 # ── Tool specs (registered by server) ────────────────────────────────────────
 
 TOOL_SPECS: list[dict] = [
@@ -2170,6 +2685,38 @@ TOOL_SPECS: list[dict] = [
             "recurringbillingfrequency, hs_recurring_billing_period, description."
         ),
         "handler": hs__update_product,
+    },
+    {
+        "name": "hs__get_activities",
+        "description": (
+            "Get activities from HubSpot CRM. REQUIRED: activity_type (note/call/task/meeting/email). "
+            "Pass activity_id to view one; add action='edit' to open edit form; action='create' for new. "
+            "Filter by entity: entity_type (company/contact/deal) + entity_name. "
+            "Filter by fields: call(hs_call_direction, hs_call_status), "
+            "task(hs_task_subject, hs_task_status, hs_task_priority), "
+            "meeting(hs_meeting_outcome), email(hs_email_status, hs_email_direction)."
+        ),
+        "handler": hs__get_activities,
+    },
+    {
+        "name": "hs__create_activity",
+        "description": (
+            "Create an activity in HubSpot CRM. REQUIRED: activity_type (note/call/task/meeting/email). "
+            "Optional: entity_type (company/contact/deal) + entity_name to associate. "
+            "Note fields: hs_note_body. Call: hs_call_body, hs_call_direction, hs_call_status. "
+            "Task: hs_task_subject, hs_task_body, hs_task_status, hs_task_priority. "
+            "Meeting: hs_meeting_title, hs_meeting_body, hs_meeting_start_time, hs_meeting_end_time, hs_meeting_outcome. "
+            "Email: hs_email_subject, hs_email_text, hs_email_direction, hs_email_status."
+        ),
+        "handler": hs__create_activity,
+    },
+    {
+        "name": "hs__update_activity",
+        "description": (
+            "Update an existing activity in HubSpot CRM. REQUIRED: activity_type + activity_id. "
+            "Only provided fields are updated. Fields depend on activity_type."
+        ),
+        "handler": hs__update_activity,
     },
 ]
 

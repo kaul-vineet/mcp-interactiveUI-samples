@@ -9,6 +9,8 @@ import { ContactsView } from './views/ContactsView';
 import { DealsView } from './views/DealsView';
 import { OrdersView } from './views/OrdersView';
 import { ProductsView } from './views/ProductsView';
+import { ActivitiesView } from './views/ActivitiesView';
+import { ActivityFormView } from './views/ActivityFormView';
 import { FormView } from './views/FormView';
 
 // ── HubSpotApp — top-level router ─────────────────────────────────────────
@@ -47,6 +49,23 @@ export default function HubSpotApp() {
   switch (data.type) {
     case 'form':
       content = <FormView data={data} callTool={callTool} toast={toast} theme={theme} />;
+      break;
+    case 'activity_form':
+      content = <ActivityFormView data={data} callTool={callTool} toast={toast} theme={theme} />;
+      break;
+    case 'activities':
+      content = (
+        <ActivitiesView
+          items={data.items || []}
+          callTool={callTool}
+          toast={toast}
+          theme={theme}
+          cacheInfo={data._cache}
+          isFullscreen={isFullscreen}
+          activityType={data.activity_type}
+          schema={data._schema}
+        />
+      );
       break;
     case 'alert':
       // FK alert — show message in error card (persistent)
