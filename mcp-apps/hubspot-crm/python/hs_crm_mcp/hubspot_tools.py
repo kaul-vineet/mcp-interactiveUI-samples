@@ -2024,7 +2024,7 @@ _ACTIVITY_SCHEMAS: dict[str, dict] = {
             {"apiName": "hs_timestamp", "label": "Date"},
         ],
         "hiddenColumns": [
-            {"apiName": "hs_call_duration_milliseconds", "label": "Duration (ms)"},
+            {"apiName": "hs_call_duration", "label": "Duration (s)"},
         ],
         "filterFields": {
             "hs_call_direction": {"operator": "EQ", "property": "hs_call_direction"},
@@ -2034,7 +2034,6 @@ _ACTIVITY_SCHEMAS: dict[str, dict] = {
             {"name": "hs_call_body", "label": "Call Notes", "multiline": True},
             {"name": "hs_call_direction", "label": "Direction", "required": True, "picklist": ["INBOUND", "OUTBOUND"]},
             {"name": "hs_call_status", "label": "Outcome", "picklist": ["COMPLETED", "BUSY", "NO_ANSWER", "FAILED", "CONNECTING", "CALLING_CRM_USER"]},
-            {"name": "hs_call_duration_milliseconds", "label": "Duration (ms)"},
         ],
     },
     "task": {
@@ -2043,7 +2042,7 @@ _ACTIVITY_SCHEMAS: dict[str, dict] = {
             {"apiName": "hs_task_subject", "label": "Subject"},
             {"apiName": "hs_task_status", "label": "Status"},
             {"apiName": "hs_task_priority", "label": "Priority"},
-            {"apiName": "hs_timestamp", "label": "Date"},
+            {"apiName": "hs_timestamp", "label": "Due Date"},
         ],
         "hiddenColumns": [
             {"apiName": "hs_task_body", "label": "Body"},
@@ -2058,6 +2057,7 @@ _ACTIVITY_SCHEMAS: dict[str, dict] = {
             {"name": "hs_task_body", "label": "Details", "multiline": True},
             {"name": "hs_task_status", "label": "Status", "picklist": ["NOT_STARTED", "IN_PROGRESS", "WAITING", "COMPLETED", "DEFERRED"]},
             {"name": "hs_task_priority", "label": "Priority", "picklist": ["HIGH", "MEDIUM", "LOW", "NONE"]},
+            {"name": "hs_timestamp", "label": "Due Date (ISO datetime)"},
         ],
     },
     "meeting": {
@@ -2130,12 +2130,6 @@ def _activity_list_props(activity_type: str) -> list[str]:
     return [c["apiName"] for c in cfg["columns"] + cfg.get("hiddenColumns", [])]
 
 
-def _activity_all_props(activity_type: str) -> list[str]:
-    """Get all property names for an activity type."""
-    cfg = _ACTIVITY_SCHEMAS[activity_type]
-    return [c["apiName"] for c in cfg["columns"] + cfg.get("hiddenColumns", [])]
-
-
 async def hs__get_activities(
     activity_type: str = "",
     activity_id: str = "",
@@ -2197,7 +2191,7 @@ async def hs__get_activities(
     if activity_id and action in ("edit", "change"):
         try:
             client = get_client()
-            record = await client.get_object(obj_type, activity_id, _activity_all_props(activity_type))
+            record = await client.get_object(obj_type, activity_id, _activity_list_props(activity_type))
         except HubSpotAuthError as exc:
             return _error_result(f"HubSpot authentication failed: {exc}")
         except HubSpotAPIError as exc:
@@ -2220,7 +2214,7 @@ async def hs__get_activities(
     if activity_id:
         try:
             client = get_client()
-            record = await client.get_object(obj_type, activity_id, _activity_all_props(activity_type))
+            record = await client.get_object(obj_type, activity_id, _activity_list_props(activity_type))
         except HubSpotAuthError as exc:
             return _error_result(f"HubSpot authentication failed: {exc}")
         except HubSpotAPIError as exc:
@@ -2312,7 +2306,6 @@ async def hs__create_activity(
     hs_call_body: str = "",
     hs_call_direction: str = "",
     hs_call_status: str = "",
-    hs_call_duration_milliseconds: str = "",
     # Task fields
     hs_task_subject: str = "",
     hs_task_body: str = "",
@@ -2341,7 +2334,6 @@ async def hs__create_activity(
     kwargs: dict[str, str] = {}
     for k, v in [("hs_note_body", hs_note_body), ("hs_call_body", hs_call_body),
                  ("hs_call_direction", hs_call_direction), ("hs_call_status", hs_call_status),
-                 ("hs_call_duration_milliseconds", hs_call_duration_milliseconds),
                  ("hs_task_subject", hs_task_subject), ("hs_task_body", hs_task_body),
                  ("hs_task_status", hs_task_status), ("hs_task_priority", hs_task_priority),
                  ("hs_meeting_title", hs_meeting_title), ("hs_meeting_body", hs_meeting_body),
@@ -2435,7 +2427,6 @@ async def hs__update_activity(
     hs_call_body: str = "",
     hs_call_direction: str = "",
     hs_call_status: str = "",
-    hs_call_duration_milliseconds: str = "",
     # Task fields
     hs_task_subject: str = "",
     hs_task_body: str = "",
@@ -2468,7 +2459,6 @@ async def hs__update_activity(
     kwargs: dict[str, str] = {}
     for k, v in [("hs_note_body", hs_note_body), ("hs_call_body", hs_call_body),
                  ("hs_call_direction", hs_call_direction), ("hs_call_status", hs_call_status),
-                 ("hs_call_duration_milliseconds", hs_call_duration_milliseconds),
                  ("hs_task_subject", hs_task_subject), ("hs_task_body", hs_task_body),
                  ("hs_task_status", hs_task_status), ("hs_task_priority", hs_task_priority),
                  ("hs_meeting_title", hs_meeting_title), ("hs_meeting_body", hs_meeting_body),
@@ -2489,14 +2479,19 @@ async def hs__update_activity(
     if not props:
         return _error_result("No fields provided to update.")
 
+    log.info("hs__update_activity sending props", props=props)
+
     try:
         client = get_client()
         await client.update_object(obj_type, activity_id, props)
     except HubSpotAuthError as exc:
+        log.error("Auth error updating activity", activity_type=activity_type, activity_id=activity_id, error=str(exc))
         return _error_result(f"HubSpot authentication failed: {exc}")
     except HubSpotAPIError as exc:
+        log.error("API error updating activity", activity_type=activity_type, activity_id=activity_id, error=str(exc))
         return _error_result(f"Failed to update {activity_type}: {exc}")
     except Exception as exc:
+        log.error("Unexpected error updating activity", activity_type=activity_type, activity_id=activity_id, error=str(exc))
         return _error_result(f"Error updating {activity_type}: {exc}")
 
     # Refresh list

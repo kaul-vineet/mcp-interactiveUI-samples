@@ -26,7 +26,7 @@ export function ActivityFormView({ data, callTool, toast, theme }: {
     return f;
   });
   const [entityInput, setEntityInput] = useState(entity_name || '');
-  const [entityTypeInput] = useState(entity_type || '');
+  const [entityTypeInput, setEntityTypeInput] = useState(entity_type || '');
   const [saving, setSaving] = useState(false);
 
   const setF = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
@@ -72,16 +72,31 @@ export function ActivityFormView({ data, callTool, toast, theme }: {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* Entity association field (only for create) */}
         {!isEdit && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <Label style={{ fontSize: 12, fontWeight: 600, color: t.textWeak }}>
-              Associate with ({entityTypeInput || 'entity'})
+              Associate with
             </Label>
-            <Input
-              value={entityInput}
-              onChange={(_, d) => setEntityInput(d.value)}
-              placeholder={`Type ${entityTypeInput || 'entity'} name...`}
-              size="small"
-            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Select
+                value={entityTypeInput}
+                onChange={(_, d) => setEntityTypeInput(d.value)}
+                size="small"
+                style={{ flex: '0 0 130px' }}
+              >
+                <option value="">— Type —</option>
+                <option value="company">Company</option>
+                <option value="contact">Contact</option>
+                <option value="deal">Deal</option>
+              </Select>
+              <Input
+                value={entityInput}
+                onChange={(_, d) => setEntityInput(d.value)}
+                placeholder={entityTypeInput ? `Type ${entityTypeInput} name...` : 'Select type first'}
+                size="small"
+                disabled={!entityTypeInput}
+                style={{ flex: 1 }}
+              />
+            </div>
           </div>
         )}
 
