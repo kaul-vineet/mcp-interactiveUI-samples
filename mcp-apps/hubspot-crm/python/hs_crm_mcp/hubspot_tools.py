@@ -2057,7 +2057,7 @@ _ACTIVITY_SCHEMAS: dict[str, dict] = {
             {"name": "hs_task_body", "label": "Details", "multiline": True},
             {"name": "hs_task_status", "label": "Status", "picklist": ["NOT_STARTED", "IN_PROGRESS", "WAITING", "COMPLETED", "DEFERRED"]},
             {"name": "hs_task_priority", "label": "Priority", "picklist": ["HIGH", "MEDIUM", "LOW", "NONE"]},
-            {"name": "hs_timestamp", "label": "Due Date (ISO datetime)"},
+            {"name": "hs_timestamp", "label": "Due Date", "inputType": "date"},
         ],
     },
     "meeting": {
@@ -2077,8 +2077,8 @@ _ACTIVITY_SCHEMAS: dict[str, dict] = {
         "formFields": [
             {"name": "hs_meeting_title", "label": "Title", "required": True},
             {"name": "hs_meeting_body", "label": "Description", "multiline": True},
-            {"name": "hs_meeting_start_time", "label": "Start Time (ISO)"},
-            {"name": "hs_meeting_end_time", "label": "End Time (ISO)"},
+            {"name": "hs_meeting_start_time", "label": "Start Time", "inputType": "datetime-local"},
+            {"name": "hs_meeting_end_time", "label": "End Time", "inputType": "datetime-local"},
             {"name": "hs_meeting_outcome", "label": "Outcome", "picklist": ["SCHEDULED", "COMPLETED", "RESCHEDULED", "NO_SHOW", "CANCELLED"]},
         ],
     },
@@ -2099,9 +2099,8 @@ _ACTIVITY_SCHEMAS: dict[str, dict] = {
         },
         "formFields": [
             {"name": "hs_email_subject", "label": "Subject", "required": True},
-            {"name": "hs_email_text", "label": "Body", "multiline": True},
             {"name": "hs_email_direction", "label": "Direction", "picklist": ["EMAIL", "INCOMING_EMAIL", "FORWARDED_EMAIL"]},
-            {"name": "hs_email_status", "label": "Status", "picklist": ["SEND", "SENDING", "SENT", "FAILED", "BOUNCED"]},
+            {"name": "hs_email_text", "label": "Body", "multiline": True, "fullWidth": True},
         ],
     },
 }
@@ -2123,11 +2122,105 @@ _ENTITY_RESOLVER: dict[str, tuple] = {
     "deal": ("deals", _resolve_deal, _deal_not_found_alert),
 }
 
+# ── Owner resolution ─────────────────────────────────────────────────────────
+
+_owner_cache: TTLCache = TTLCache(maxsize=1, ttl=300)  # 5-min cache
+
+
+async def _get_owners(client: Any) -> list[dict]:
+    """Fetch owners with 5-min cache."""
+    cached = _owner_cache.get("owners")
+    if cached is not None:
+        return cached
+    owners = await client.get_owners()
+    _owner_cache["owners"] = owners
+    return owners
+
+
+async def _resolve_owner(client: Any, name: str) -> tuple[str | None, list[str]]:
+    """Resolve an owner by name. Returns (owner_id, suggestions)."""
+    owners = await _get_owners(client)
+    name_lower = name.lower()
+    # Exact match first
+    for o in owners:
+        full = f"{o['firstName']} {o['lastName']}".strip()
+        if full.lower() == name_lower:
+            return o["id"], []
+    # Partial match
+    matches = []
+    for o in owners:
+        full = f"{o['firstName']} {o['lastName']}".strip()
+        if name_lower in full.lower() or name_lower in o.get("email", "").lower():
+            matches.append(o)
+    if len(matches) == 1:
+        return matches[0]["id"], []
+    suggestions = [f"{o['firstName']} {o['lastName']}".strip() for o in (matches or owners)]
+    return None, suggestions[:5]
+
 
 def _activity_list_props(activity_type: str) -> list[str]:
     """Get property names for list view of an activity type."""
     cfg = _ACTIVITY_SCHEMAS[activity_type]
-    return [c["apiName"] for c in cfg["columns"] + cfg.get("hiddenColumns", [])]
+    props = [c["apiName"] for c in cfg["columns"] + cfg.get("hiddenColumns", [])]
+    if "hubspot_owner_id" not in props:
+        props.append("hubspot_owner_id")
+    return props
+
+
+async def _enrich_related_to(client: Any, obj_type: str, items: list[dict]) -> None:
+    """Enrich activity items with _related_to field via batch association lookups."""
+    if not items:
+        return
+    ids = [i["id"] for i in items if i.get("id")]
+    if not ids:
+        return
+
+    # Batch-read associations to companies, contacts, deals
+    related: dict[str, dict] = {}  # activity_id → {"type": ..., "name": ...}
+    for entity_plural, entity_label in [("companies", "Company"), ("contacts", "Contact"), ("deals", "Deal")]:
+        try:
+            resp = await client._request(
+                "POST",
+                f"/crm/v4/associations/{obj_type}/{entity_plural}/batch/read",
+                json_body={"inputs": [{"id": aid} for aid in ids]},
+            )
+            if not resp.is_success:
+                continue
+            results = resp.json().get("results", [])
+            entity_ids_to_fetch: list[str] = []
+            activity_to_entity: dict[str, str] = {}
+            for r in results:
+                from_id = str(r.get("from", {}).get("id", ""))
+                to_list = r.get("to", [])
+                if from_id and to_list and from_id not in related:
+                    eid = str(to_list[0]["toObjectId"])
+                    activity_to_entity[from_id] = eid
+                    entity_ids_to_fetch.append(eid)
+            if not entity_ids_to_fetch:
+                continue
+            # Batch-read entity names
+            name_prop = "name" if entity_plural == "companies" else "dealname" if entity_plural == "deals" else "firstname"
+            records = await client.batch_read(entity_plural, list(set(entity_ids_to_fetch)),
+                                             ["firstname", "lastname"] if entity_plural == "contacts" else [name_prop])
+            name_map: dict[str, str] = {}
+            for rec in records:
+                if entity_plural == "contacts":
+                    name_map[rec["id"]] = f"{rec.get('firstname', '')} {rec.get('lastname', '')}".strip()
+                else:
+                    name_map[rec["id"]] = rec.get(name_prop, "") or rec.get("id", "")
+            for act_id, ent_id in activity_to_entity.items():
+                if act_id not in related and ent_id in name_map:
+                    related[act_id] = {"type": entity_label, "name": name_map[ent_id]}
+        except Exception:
+            continue
+
+    # Attach to items
+    for item in items:
+        rel = related.get(item.get("id", ""))
+        if rel:
+            item["_related_to"] = f"{rel['type']}: {rel['name']}"
+        else:
+            item["_related_to"] = ""
 
 
 async def hs__get_activities(
@@ -2286,6 +2379,12 @@ async def hs__get_activities(
     except Exception as exc:
         return _error_result(f"Error fetching {activity_type}s: {exc}")
 
+    # Enrich with Related To
+    try:
+        await _enrich_related_to(client, obj_type, items)
+    except Exception as exc:
+        log.warning("enrich_related_to failed", error=str(exc))
+
     return types.CallToolResult(
         content=[TextContent(type="text", text=f"{len(items)} {activity_type}(s).")],
         structuredContent={
@@ -2300,6 +2399,9 @@ async def hs__create_activity(
     activity_type: str,
     entity_type: str = "",
     entity_name: str = "",
+    owner_name: str = "",
+    # Shared timestamp (task due date, activity date)
+    hs_timestamp: str = "",
     # Note fields
     hs_note_body: str = "",
     # Call fields
@@ -2332,7 +2434,8 @@ async def hs__create_activity(
 
     # Collect all field values into kwargs dict
     kwargs: dict[str, str] = {}
-    for k, v in [("hs_note_body", hs_note_body), ("hs_call_body", hs_call_body),
+    for k, v in [("hs_timestamp", hs_timestamp),
+                 ("hs_note_body", hs_note_body), ("hs_call_body", hs_call_body),
                  ("hs_call_direction", hs_call_direction), ("hs_call_status", hs_call_status),
                  ("hs_task_subject", hs_task_subject), ("hs_task_body", hs_task_body),
                  ("hs_task_status", hs_task_status), ("hs_task_priority", hs_task_priority),
@@ -2360,8 +2463,13 @@ async def hs__create_activity(
         if not props.get(rf):
             return _error_result(f"'{rf}' is required for {activity_type}.")
 
-    # Auto-set timestamp
-    props["hs_timestamp"] = _now_iso()
+    # Auto-set timestamp only if user didn't provide one
+    if "hs_timestamp" not in props:
+        props["hs_timestamp"] = _now_iso()
+
+    # Auto-set email status to DRAFT on create
+    if activity_type == "email":
+        props["hs_email_status"] = "DRAFT"
 
     # Resolve FK entity for association
     associations: list[dict] = []
@@ -2383,6 +2491,25 @@ async def hs__create_activity(
                 "to": {"id": entity_id},
                 "types": [{"associationCategory": "HUBSPOT_DEFINED", "associationTypeId": assoc_type_id}],
             })
+
+    # Resolve owner name → owner ID
+    if owner_name:
+        try:
+            client = get_client()
+            owner_id, suggestions = await _resolve_owner(client, owner_name)
+        except Exception as exc:
+            return _error_result(f"Error resolving owner: {exc}")
+        if not owner_id:
+            return types.CallToolResult(
+                content=[TextContent(type="text", text=f"Owner '{owner_name}' not found.")],
+                structuredContent={
+                    "type": "alert", "style": "fk",
+                    "message": f"No exact match for owner '{owner_name}'.",
+                    "suggestions": suggestions,
+                    "systemName": "HubSpot",
+                },
+            )
+        props["hubspot_owner_id"] = owner_id
 
     # Create the activity
     try:
@@ -2421,6 +2548,9 @@ async def hs__create_activity(
 async def hs__update_activity(
     activity_type: str,
     activity_id: str,
+    owner_name: str = "",
+    # Shared timestamp (task due date, activity date)
+    hs_timestamp: str = "",
     # Note fields
     hs_note_body: str = "",
     # Call fields
@@ -2457,7 +2587,8 @@ async def hs__update_activity(
 
     # Collect all field values into kwargs dict
     kwargs: dict[str, str] = {}
-    for k, v in [("hs_note_body", hs_note_body), ("hs_call_body", hs_call_body),
+    for k, v in [("hs_timestamp", hs_timestamp),
+                 ("hs_note_body", hs_note_body), ("hs_call_body", hs_call_body),
                  ("hs_call_direction", hs_call_direction), ("hs_call_status", hs_call_status),
                  ("hs_task_subject", hs_task_subject), ("hs_task_body", hs_task_body),
                  ("hs_task_status", hs_task_status), ("hs_task_priority", hs_task_priority),
@@ -2475,6 +2606,25 @@ async def hs__update_activity(
     for k, v in kwargs.items():
         if k in valid_fields and v:
             props[k] = v
+
+    # Resolve owner name → owner ID
+    if owner_name:
+        try:
+            client = get_client()
+            owner_id, suggestions = await _resolve_owner(client, owner_name)
+        except Exception as exc:
+            return _error_result(f"Error resolving owner: {exc}")
+        if not owner_id:
+            return types.CallToolResult(
+                content=[TextContent(type="text", text=f"Owner '{owner_name}' not found.")],
+                structuredContent={
+                    "type": "alert", "style": "fk",
+                    "message": f"No exact match for owner '{owner_name}'.",
+                    "suggestions": suggestions,
+                    "systemName": "HubSpot",
+                },
+            )
+        props["hubspot_owner_id"] = owner_id
 
     if not props:
         return _error_result("No fields provided to update.")

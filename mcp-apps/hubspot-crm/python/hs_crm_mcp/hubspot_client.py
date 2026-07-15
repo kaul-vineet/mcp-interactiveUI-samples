@@ -197,6 +197,17 @@ class HubSpotClient:
         )
         self._raise_for_error(resp, f"associate {from_type}/{from_id} → {to_type}/{to_id}")
 
+    # ── Owners ───────────────────────────────────────────────────────────────
+
+    async def get_owners(self, limit: int = 100) -> list[dict[str, Any]]:
+        """Fetch HubSpot owners (users/team members)."""
+        resp = await self._request("GET", "/crm/v3/owners", params={"limit": limit})
+        self._raise_for_error(resp, "get owners")
+        return [
+            {"id": o["id"], "firstName": o.get("firstName", ""), "lastName": o.get("lastName", ""), "email": o.get("email", "")}
+            for o in resp.json().get("results", [])
+        ]
+
 
 # ── Module-level singleton ────────────────────────────────────────────────────
 

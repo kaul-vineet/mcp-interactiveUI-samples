@@ -64,6 +64,8 @@ export function ActivitiesView({ items: initItems, callTool, toast, theme, cache
     setEditingId(item.id);
     const f: Record<string, string> = {};
     formFields.forEach((ff: any) => { f[ff.name] = item[ff.name] || ''; });
+    f['_related_to'] = item['_related_to'] || '';
+    if (activityType === 'email') f['hs_email_status'] = item['hs_email_status'] || '';
     setForm(f);
   };
   const cancel = () => { setEditingId(null); };
@@ -88,14 +90,27 @@ export function ActivitiesView({ items: initItems, callTool, toast, theme, cache
   useEffect(() => { if (lastSavedId) { const x = setTimeout(() => setLastSavedId(null), 4800); return () => clearTimeout(x); } }, [lastSavedId]);
 
   const setF = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
-  const fFields = formFields.map((f: any) => ({
-    label: f.label,
-    key: f.name,
-    value: form[f.name] || '',
-    type: f.picklist ? 'select' as const : f.multiline ? 'textarea' as const : 'text' as const,
-    options: f.picklist,
-    onChange: (v: string) => setF(f.name, v),
-  }));
+  const fFields: any[] = [];
+  // Read-only: Related To
+  if (form['_related_to']) {
+    fFields.push({ label: 'Related To', key: '_related_to', value: form['_related_to'], type: 'text', readonly: true, onChange: () => {} });
+  }
+  // Read-only: Email Status
+  if (activityType === 'email' && form['hs_email_status']) {
+    fFields.push({ label: 'Status', key: 'hs_email_status', value: form['hs_email_status'], type: 'text', readonly: true, onChange: () => {} });
+  }
+  // Editable form fields
+  formFields.forEach((f: any) => {
+    fFields.push({
+      label: f.label,
+      key: f.name,
+      value: form[f.name] || '',
+      type: f.picklist ? 'select' as const : f.multiline ? 'textarea' as const : 'text' as const,
+      inputType: f.inputType,
+      options: f.picklist,
+      onChange: (v: string) => setF(f.name, v),
+    });
+  });
 
   const viewFields = viewingItem ? allViewFields.map((col: any) => ({
     label: col.label, value: formatCell(col.apiName, viewingItem[col.apiName]),
@@ -120,6 +135,7 @@ export function ActivitiesView({ items: initItems, callTool, toast, theme, cache
             {columns.map((col: any) => (
               <TableHeaderCell key={col.apiName} style={{ ...H_CELL, color: t.textWeak }}>{col.label}</TableHeaderCell>
             ))}
+            <TableHeaderCell style={{ ...H_CELL, color: t.textWeak }}>Related To</TableHeaderCell>
             {isFullscreen && <TableHeaderCell style={{ ...H_CELL, width: 50, color: t.textWeak }} />}
           </TableRow>
         </TableHeader>
@@ -139,6 +155,9 @@ export function ActivitiesView({ items: initItems, callTool, toast, theme, cache
                   }
                 </TableCell>
               ))}
+              <TableCell style={{ ...D_CELL, fontSize: 11, color: t.textWeak }}>
+                {item._related_to || '—'}
+              </TableCell>
               {isFullscreen && (
                 <TableCell style={D_CELL}>
                   <Button appearance="subtle" icon={<EyeRegular />} size="small" onClick={() => openView(item)} aria-label="View" title="View" />

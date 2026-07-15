@@ -2,7 +2,7 @@
     "tools": [
         {
             "name": "hs__get_companies",
-            "description": "Get companies from HubSpot CRM (10 most recent). Pass company_id to view one record; add action='edit' to open the edit form. Filters: name (text search), type (PROSPECT, PARTNER, RESELLER, VENDOR, OTHER), lifecyclestage (subscriber, lead, marketingqualifiedlead, salesqualifiedlead, opportunity, customer, evangelist, other), city, country.",
+            "description": "Get companies from HubSpot CRM (10 most recent). Pass company_id to view one record; add action='edit' to open the edit form. Filters: name (text search), domain (text search), type (PROSPECT, PARTNER, RESELLER, VENDOR, OTHER), lifecyclestage (subscriber, lead, marketingqualifiedlead, salesqualifiedlead, opportunity, customer, evangelist, other), city, country.",
             "inputSchema": {
                 "properties": {
                     "company_id": {
@@ -10,6 +10,10 @@
                         "type": "string"
                     },
                     "name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "domain": {
                         "default": "",
                         "type": "string"
                     },
@@ -639,6 +643,426 @@
                 "required": []
             },
             "title": "Update order",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__get_products",
+            "description": "Get products from HubSpot CRM (10 most recent). Pass product_id to view one record; add action='edit' to open the edit form; action='create' to open a blank create form. Filters: name (text search), hs_product_type (inventory/non_inventory/service), hs_status (active/inactive).",
+            "inputSchema": {
+                "properties": {
+                    "product_id": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_status": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_product_type": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "action": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "refresh": {
+                        "default": false,
+                        "type": "boolean"
+                    }
+                },
+                "type": "object",
+                "required": []
+            },
+            "title": "Get products",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__create_product",
+            "description": "Create a new Product in HubSpot CRM. Required: name. Optional: hs_sku, price, hs_status (active/inactive), hs_product_type (inventory/non_inventory/service), recurringbillingfrequency (weekly/biweekly/monthly/quarterly/per_six_months/annually/per_two_years/per_three_years/per_four_years/per_five_years), hs_recurring_billing_period (term), description.",
+            "inputSchema": {
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "hs_sku": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "price": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_status": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_product_type": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "recurringbillingfrequency": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_recurring_billing_period": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "description": {
+                        "default": "",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "name"
+                ],
+                "type": "object"
+            },
+            "title": "Create product",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__update_product",
+            "description": "Update an existing Product in HubSpot CRM by its record Id. Only fields provided will be updated. Fields: name, hs_sku, price, hs_status, hs_product_type, recurringbillingfrequency, hs_recurring_billing_period, description.",
+            "inputSchema": {
+                "properties": {
+                    "product_id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_sku": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "price": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_status": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_product_type": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "recurringbillingfrequency": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_recurring_billing_period": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "description": {
+                        "default": "",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "product_id"
+                ],
+                "type": "object"
+            },
+            "title": "Update product",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__get_activities",
+            "description": "Get activities from HubSpot CRM. REQUIRED: activity_type (note/call/task/meeting/email). Pass activity_id to view one; add action='edit' to open edit form; action='create' for new. Filter by entity: entity_type (company/contact/deal) + entity_name. Filter by fields: call(hs_call_direction, hs_call_status), task(hs_task_subject, hs_task_status, hs_task_priority), meeting(hs_meeting_outcome), email(hs_email_status, hs_email_direction).",
+            "inputSchema": {
+                "properties": {
+                    "activity_type": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "activity_id": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "entity_type": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "entity_name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "action": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "refresh": {
+                        "default": false,
+                        "type": "boolean"
+                    },
+                    "hs_call_direction": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_call_status": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_task_subject": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_task_status": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_task_priority": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_meeting_outcome": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_email_status": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_email_direction": {
+                        "default": "",
+                        "type": "string"
+                    }
+                },
+                "type": "object",
+                "required": []
+            },
+            "title": "Get activities",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__create_activity",
+            "description": "Create an activity in HubSpot CRM. REQUIRED: activity_type (note/call/task/meeting/email). Optional: entity_type (company/contact/deal) + entity_name to associate. Note fields: hs_note_body. Call: hs_call_body, hs_call_direction, hs_call_status. Task: hs_task_subject, hs_task_body, hs_task_status, hs_task_priority. Meeting: hs_meeting_title, hs_meeting_body, hs_meeting_start_time, hs_meeting_end_time, hs_meeting_outcome. Email: hs_email_subject, hs_email_text, hs_email_direction, hs_email_status.",
+            "inputSchema": {
+                "properties": {
+                    "activity_type": {
+                        "type": "string"
+                    },
+                    "entity_type": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "entity_name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "owner_name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_timestamp": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_note_body": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_call_body": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_call_direction": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_call_status": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_task_subject": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_task_body": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_task_status": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_task_priority": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_meeting_title": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_meeting_body": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_meeting_start_time": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_meeting_end_time": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_meeting_outcome": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_email_subject": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_email_text": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_email_direction": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_email_status": {
+                        "default": "",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "activity_type"
+                ],
+                "type": "object"
+            },
+            "title": "Create activity",
+            "_meta": {
+                "ui": {
+                    "resourceUri": "ui://widget/hubspot.html"
+                }
+            }
+        },
+        {
+            "name": "hs__update_activity",
+            "description": "Update an existing activity in HubSpot CRM. REQUIRED: activity_type + activity_id. Only provided fields are updated. Fields depend on activity_type.",
+            "inputSchema": {
+                "properties": {
+                    "activity_type": {
+                        "type": "string"
+                    },
+                    "activity_id": {
+                        "type": "string"
+                    },
+                    "owner_name": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_timestamp": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_note_body": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_call_body": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_call_direction": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_call_status": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_task_subject": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_task_body": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_task_status": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_task_priority": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_meeting_title": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_meeting_body": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_meeting_start_time": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_meeting_end_time": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_meeting_outcome": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_email_subject": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_email_text": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_email_direction": {
+                        "default": "",
+                        "type": "string"
+                    },
+                    "hs_email_status": {
+                        "default": "",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "activity_type",
+                    "activity_id"
+                ],
+                "type": "object"
+            },
+            "title": "Update activity",
             "_meta": {
                 "ui": {
                     "resourceUri": "ui://widget/hubspot.html"
